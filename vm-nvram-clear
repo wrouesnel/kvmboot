@@ -1,0 +1,14 @@
+#!/bin/bash
+# Script to reset the NVRAM of a VM
+
+virsh="$(command -v virsh) -c qemu:///session"
+
+nvram_path=$( $virsh dumpxml "$1" | xmlstarlet sel -t -m '//nvram' -v . -n )
+nvram_rom=$( $virsh dumpxml "$1" | xmlstarlet sel -t -m '//loader' -v . -n )
+
+if [ -n "$nvram_path" ]; then
+    cp -f /usr/share/OVMF/OVMF_VARS.fd "$nvram_path"
+    echo "Reset EFI vars for $1"
+else
+    echo "Could not find NVRAM for $1"
+fi

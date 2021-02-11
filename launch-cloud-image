@@ -1,0 +1,562 @@
+#!/bin/bash
+# Launch a cloud image with libvirt
+
+# log functions
+function log() {
+  echo "$*" 1>&2
+}
+
+function fatal() {
+  local exit_code="$1"
+  shift
+  echo "FATAL: $*" 1>&2
+  exit "$exit_code"
+}
+
+function dehumanize() {
+  for v in "${@:-$(</dev/stdin)}"
+  do  
+    echo $v | awk \
+      'BEGIN{IGNORECASE = 1}
+       function printpower(n,b,p) {printf "%u\n", n*b^p; next}
+       /[0-9]$/{print $1;next};
+       /K(iB)?$/{printpower($1,  2, 10)};
+       /M(iB)?$/{printpower($1,  2, 20)};
+       /G(iB)?$/{printpower($1,  2, 30)};
+       /T(iB)?$/{printpower($1,  2, 40)};
+       /KB$/{    printpower($1, 10,  3)};
+       /MB$/{    printpower($1, 10,  6)};
+       /GB$/{    printpower($1, 10,  9)};
+       /TB$/{    printpower($1, 10, 12)}'
+  done
+} 
+
+
+# atexit handler
+ATEXIT=()
+
+function atexit() {
+  ATEXIT+=( "$*" )
+}
+
+function _atexit_handler() {
+  local EXPR
+  for EXPR in "${ATEXIT[@]}"; do
+    #log "atexit: $EXPR"
+    eval "$EXPR"
+  done
+}
+
+trap _atexit_handler EXIT
+
+opt_efi=0
+opt_video=0
+opt_extra_disks=
+opt_ram=4G
+opt_windows=0
+opt_installer=0
+# Collect optional arguments
+while [ -n "$1" ] ; do
+    arg="$1"
+    case $arg in
+    --efi)
+      opt_efi=1
+      ;;
+    --video)
+      opt_video=1
+      ;;
+    --extra-disks)
+      shift
+      opt_extra_disks="$1"
+      ;;
+    --ram)
+      shift
+      opt_ram="$1"
+      ;;
+    --windows)
+      # Setting for windows guests.
+      opt_windows=1
+      ;;
+    --installer)
+      # --installer makes a blank disk (100G) and mounts the requested image
+      # as an ISO instead.
+      opt_installer=1
+      ;;
+    *)
+      break
+      ;;
+    esac
+    shift
+done
+
+# Best effort image source
+image_src="$1"
+shift
+
+# Best effort image name
+image_name="$1"
+shift
+
+# Convert ram bytes
+ram_bytes=$(dehumanize "$opt_ram")
+
+if [ -z "$image_name" ]; then
+  image_name=lci-"$(dd if=/dev/urandom bs=1 count=6 2>/dev/null | base32 -w0 | cut -d'=' -f1 | tr '[:upper:]' '[:lower:]')"
+fi
+
+virsh="$(command -v virsh) -q --connect=qemu:///session"
+qemuimg="$(command -v qemu-img)"
+secrettool="$(command -v secret-tool)"
+pwgen="$(command -v pwgen)"
+
+# Hardcoded defaults
+pool="default"
+root_disk="lci.$image_name.root.qcow2"
+capacity="100G"
+
+default_user="$(id -u -n)"
+default_password=$($pwgen 20)
+
+timezone="$(timedatectl show -p Timezone | cut -d'=' -f2-)"
+
+ssh_key_path=$HOME/.ssh/id_rsa
+
+get_pass_script=$(mktemp)
+chmod +x "$get_pass_script"
+cat > "$get_pass_script" << EOF
+#!/bin/bash
+$secrettool lookup unique ssh-store:$ssh_key_path
+EOF
+
+export SSH_ASKPASS="$get_pass_script"
+
+atexit rm -f "$get_pass_script"
+
+ssh_authorized_key=$(echo "" | ssh-keygen -y -f "$ssh_key_path")
+if [ $? != 0 ]; then
+  exit 1
+fi
+
+echo "$ssh_authorized_key"
+
+# Refresh storage pool before going further
+"$virsh" pool-refresh "$pool" 1>/dev/null 2>&1
+
+if [ $opt_installer = 0 ]; then
+  prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
+  if [ $? != 0 ]; then
+    fatal 1 "Failed to create temporary directory"
+  fi
+
+  if [ -z $prep_dir ]; then
+    fatal 1 "Got empty directory for $prep_dir"
+  fi
+
+  atexit "rm -rf $prep_dir"
+
+  cat > "$prep_dir/meta-data" << EOF
+instance-id: $image_name
+local-hostname: $image_name
+admin-username: $default_user
+admin-password: $default_password
+EOF
+
+  cat > "$prep_dir/user-data" << EOF
+#cloud-config
+resize_rootfs: True
+ssh_pwauth: True
+timezone: $timezone
+
+system_info:
+  default_user:
+    name: "$default_user"
+    plain_text_passwd: "$default_password"
+
+ssh_authorized_keys:
+- ${ssh_authorized_key}
+
+final_message: "launch-cloud-image: SYSTEM READY"
+EOF
+
+
+  # Build the user data ISO
+  if ! pushd "$prep_dir" >/dev/null 2>&1; then
+    exit 1
+  fi
+
+  isopath=$(mktemp -p "" --suffix=.iso "lci.$image_name.userdata.XXXXXXXXX")
+  if [ $? != 0 ]; then
+    fatal 1 "Failed to create temporary ISO"
+  fi
+
+  if [ -z $isopath ]; then
+    fatal 1 "Got empty path for $isopath"
+  fi
+
+  atexit rm -f "$isopath"
+
+  isoname=$(basename "$isopath")
+
+  if ! genisoimage -output "$isopath" -volid cidata -joliet -rock user-data meta-data >/dev/null 2>&1 ; then
+    exit 1
+  fi
+
+  if ! popd  >/dev/null 2>&1; then
+    exit 1
+  fi
+
+  # Upload the ISO to the pool then clean up
+  isosize=$(stat --format "%s" "$isopath")
+  if [ $? != 0 ]; then
+    fatal 1 "Could not stat $isopath"
+  fi
+
+  if ! $virsh vol-create-as --pool "$pool" --name "$isoname" --format raw --capacity "$isosize" 1>&2 ; then
+    fatal 1 "Could not create ISO volume in libvirt pool"
+  fi
+
+  # Upload to volume
+  if ! $virsh vol-upload --pool "$pool" --offset 0 --length "$isosize" "$isoname" "$isopath" 1>&2 ; then
+    $virsh vol-delete --pool "$pool" "$isoname" || log "Failed to delete $isoname. Please delete manually."
+    fatal 1 "Could not upload to ISO volume"
+    
+  fi
+
+  # Set an exit handler to destory the image if creation fails.
+  vm_created=0
+  atexit "[ \${vm_created} = 0 ] && ( $virsh vol-delete --pool "$pool" "$isoname" )"
+
+else
+  # In installer mode, the isoname becomes the image src name
+  isoname="$image_src"
+fi
+
+# Setup the VM disks
+if [ $opt_installer = 1 ]; then
+  # Get the backing volume.
+  backing_vol=""
+
+  while read vol_entry; do
+    vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
+    if [ "$vol_name" = "$image_src" ]; then
+      backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+      break
+    fi
+  done < <($virsh vol-list --pool "$pool")
+
+  if [ -z "$backing_vol" ]; then
+    fatal 1 "Volume $image_src could not be located in the default pool."
+  fi
+
+  if [ ! -e "$backing_vol" ]; then
+    fatal 1 "Volume $image_src at $backing_vol could does not exist or is inaccessible."
+  fi
+
+  # Determine the type of backing format
+  backing_image_format=$( $qemuimg info "$backing_vol" | grep -F "file format: " | head -n1 | cut -d":" -f2 | tr -d ' ' )
+  if [ -z "$backing_image_format" ] ; then
+    fatal 1 "Could not determine backing image format."
+  fi
+
+  if ! $virsh vol-create-as \
+      --pool "$pool"  \
+      --name "$root_disk"  \
+      --format qcow2  \
+      --backing-vol "$backing_vol"  \
+      --backing-vol-format "$backing_image_format" \
+      --capacity "$capacity" 1>&2 ; then
+    fatal 1 "Could not create machine attached volume."
+  fi
+else
+  # Installer mode - make a blank disk.
+  if ! $virsh vol-create-as \
+      --pool "$pool"  \
+      --name "$root_disk"  \
+      --format qcow2  \
+      --capacity "$capacity" \
+      --allocation 0 1>&2 ; then
+    fatal 1 "Could not create machine attached volume."
+  fi
+fi
+
+extra_disks=()
+if [ ! -z "$opt_extra_disks" ]; then
+  i=0
+  disk_failure=0
+  while read -r diskspec; do
+    i=$((i+1))
+
+    extra_disk_path="lci.$image_name.disk-${i}.qcow2"
+    if ! $virsh vol-create-as \
+      --pool "$pool" \
+      --name "${extra_disk_path}" \
+      --format qcow2 \
+      --capacity "$diskspec" \
+      --allocation 0 \
+      --prealloc-metadata 1>&2 ; then
+      disk_failure=1
+    fi
+
+    extra_disks+=( "${extra_disk_path}" )
+
+  done < <(echo "$opt_extra_disks" | tr ',' '\n')
+
+  if [ $disk_failure != 0 ]; then
+    fatal $disk_failure "Error while creating extra disks for VM"
+  fi
+fi
+
+
+log "User Login: $default_user" 
+
+# Setup the VM
+
+declare -A volnameMap
+
+while read vol_entry; do
+  vol_name=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)
+  vol_path=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+  volnameMap["$vol_name"]="$vol_path"
+done < <($virsh vol-list --pool "$pool")
+
+root_disk_path=${volnameMap[$root_disk]}
+iso_file_path=${volnameMap[$isoname]}
+
+log "Root disk path: $root_disk_path"
+log "ISO file path: $iso_file_path"
+
+mac_addr="$(echo -n 52:54:00; dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '/1 ":%02X"')"
+vm_name="${image_name}"
+
+disk_xml=
+alphas=( {a..z} )
+i=0
+for extra_disk_path in "${extra_disks[@]}"; do
+  i=$((i+1))
+    read -r -d '' disk_xml << EOF
+${disk_xml}
+<disk type='file' device='disk'>
+  <driver name='qemu' type='qcow2'/>
+  <source file='${volnameMap[$extra_disk_path]}'/>
+  <target dev='vd${alphas[i]}' bus='virtio'/>
+</disk>
+EOF
+done
+
+xml_def=$(mktemp -p "" "lci.$image_name.XXXXXXXXXX.xml")
+if [ -z "$xml_def" ]; then
+  fatal 1 "Could not create XML definition file."
+fi
+
+atexit rm -f "$xml_def"
+
+# Ensure the shared home dir exists
+# mkdir -p "${HOME}/shared/${image_name}"
+# chmod 750 "${HOME}/shared/${image_name}"
+
+# mkdir -p "${HOME}/shared/${image_name}/.ssh"
+# chmod 700 "${HOME}/shared/${image_name}/.ssh"
+
+# mkdir -p "${HOME}/shared/${image_name}/.gnupg"
+# chmod 700 "${HOME}/shared/${image_name}/.gnupg"
+
+if [ $opt_efi = 1 ]; then
+  nvram_path="$HOME/.local/share/libvirt/qemu/nvram"
+  mkdir -p "$nvram_path"
+
+  cp "/usr/share/OVMF/OVMF_VARS.fd" "${nvram_path}/${vm_name}_VARS.fd"
+
+  nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
+  nvram2="<nvram>${nvram_path}/${vm_name}_VARS.fd</nvram>"
+else
+  nvram1=""
+  nvram2=""
+fi
+
+video_xml=""
+if [ $opt_video = 1 ]; then
+  read -r -d '' video_xml << EOF
+    <graphics type='spice' autoport='yes'>
+      <listen type="address" address="127.0.0.1"/>
+      <image compression='off'/>
+    </graphics>
+    <video>
+      <model type="virtio" heads="1" primary="yes"/>
+    </video>
+EOF
+fi
+
+if [ $opt_windows = 1 ]; then
+  read -r -d '' video_xml << EOF
+    <graphics type='spice' autoport='yes'>
+      <listen type="address" address="127.0.0.1"/>
+      <image compression='off'/>
+    </graphics>
+    <video>
+      <model type="qxl" ram="65536" vram="65536" vgamem="16384" heads="1" primary="yes"/>
+    </video>
+EOF
+fi
+
+root_boot_order_xml='<boot order="1"/>'
+cd_boot_order_xml=
+if [ $opt_installer = 1 ]; then
+  root_boot_order_xml='<boot order="1"/>'
+  cd_boot_order_xml='<boot order="2"/>'
+fi
+
+cat << EOF > "$xml_def"
+<domain type='kvm'>
+  <name>${vm_name}</name>
+  <memory unit='B'>$ram_bytes</memory>
+  <currentMemory unit='B'>$ram_bytes</currentMemory>
+  <vcpu placement='static'>2</vcpu>
+  <os>
+    <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
+    $nvram1
+    $nvram2
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state='off'/>
+  </features>
+  <cpu mode="host-passthrough"/>
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='${root_disk_path}'/>
+      <target dev='vda' bus='virtio'/>
+      ${root_boot_order_xml}
+    </disk>
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='${iso_file_path}'/>
+      <backingStore/>
+      <target dev='sda' bus='sata'/>
+      ${cd_boot_order_xml}
+    </disk>
+
+    $disk_xml
+
+    <controller type='usb' index='0' model='qemu-xhci' ports='15'/>
+    <controller type='sata' index='0'/>
+    <controller type="pci" index="0" model="pci-root"/>
+    <controller type='virtio-serial' index='0'/>
+    <interface type='bridge'>
+      <mac address='${mac_addr}'/>
+      <source bridge='virbr0'/>
+      <target dev='tap0'/>
+      <model type='virtio'/>
+    </interface>
+    <serial type='pty'>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0'/>
+    </channel>
+    <input type='tablet' bus='usb'/>
+    <input type='mouse' bus='ps2'/>
+
+    <redirdev bus='usb' type='spicevmc'/>
+    <memballoon model='virtio'/>
+    <rng model='virtio'>
+      <backend model='random'>/dev/urandom</backend>
+    </rng>
+
+    $video_xml
+
+    <!--
+    <filesystem type="mount" accessmode="passthrough">
+        <driver type="path" wrpolicy="immediate"/>
+        <source dir="${HOME}/shared/${image_name}"/>
+        <target dir="user_home"/>
+    </filesystem>
+    <filesystem type="mount" accessmode="passthrough">
+        <driver type="path" wrpolicy="immediate"/>
+        <source dir="${HOME}/.gnupg"/>
+        <target dir="gpg_home"/>
+    </filesystem>
+    <filesystem type="mount" accessmode="passthrough">
+        <driver type="path" wrpolicy="immediate"/>
+        <source dir="${HOME}/.ssh"/>
+        <target dir="ssh_home"/>
+    </filesystem>
+    -->
+  </devices>
+  <!--<seclabel type='dynamic' model='selinux' relabel='yes'/>-->
+</domain>
+EOF
+
+if ! $virsh define --file "${xml_def}" 1>&2; then
+  fatal 1 "Failed to create the new virtual machine definition"
+fi
+
+# ISO deletion no longer allowed
+vm_created=1 
+log "Virtual machine created as: ${vm_name}"
+
+if ! $virsh start "${vm_name}" 1>&2 ; then
+  fatal 1 "Failed to start the new virtual machine"
+fi
+
+vm_dns="${vm_name}.default.libvirt"
+
+# Wait for the machine to boot to SSH completion
+while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
+  sleep 0.5
+done
+
+if [ $opt_windows = 0 ]; then
+  while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
+    sleep 0.5
+  done
+else
+  while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
+    sleep 0.5
+  done
+fi
+
+vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
+if [ $? != 0 ]; then
+  fatal 1 "VM IP failed to be resolved."
+fi
+
+# Inject the new machine into the current users known_hosts and remove any other entries
+# TODO: hide output except on error.
+ssh-keygen -R "${vm_dns}" >/dev/null 2>&1
+ssh-keygen -R "${vm_ip}" >/dev/null 2>&1
+ssh-keygen -R "${vm_dns},${vm_ip}" >/dev/null 2>&1
+
+{ 
+  ssh-keyscan -H "${vm_dns},${vm_ip}" 2>/dev/null
+  ssh-keyscan -H "${vm_ip}" 2>/dev/null
+  ssh-keyscan -H "${vm_dns}" 2>/dev/null
+} >> "$HOME/.ssh/known_hosts"
+
+# TODO: Create an ansible-like inventory file entry for the machine.
+# The idea is you just do cat *.inventory > inventory to build something to work with.
+
+# Write the machine hostname to stdout.
+echo "${vm_dns}" : "$default_user" : "$default_password"

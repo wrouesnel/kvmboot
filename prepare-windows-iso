@@ -1,0 +1,222 @@
+#!/bin/bash
+# Script to handle modifying a Windows ISO into an automated form
+# Result is an ISO.
+
+set -o pipefail
+
+# atexit handler
+ATEXIT=()
+
+function atexit() {
+  ATEXIT+=( "$*" )
+}
+
+function _atexit_handler() {
+  local EXPR
+  for (( idx=${#ATEXIT[@]}-1 ; idx>=0 ; idx-- )); do
+    EXPR="${ATEXIT[idx]}"
+    echo "atexit: $EXPR" 1>&2
+    eval "$EXPR"
+  done
+}
+
+trap _atexit_handler EXIT
+
+function fatal() {
+  local exit_code="$1"
+  shift
+  echo "FATAL: $*" 1>&2
+  exit "$exit_code"
+}
+
+function containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+# Collect optional arguments
+drivers_dir=""
+while [ -n "$1" ] ; do
+    arg="$1"
+    case $arg in
+    --add-drivers)
+      shift
+      drivers_dir="$1"
+      if [ ! -d "${drivers_dir}" ]; then
+        fatal 1 "Driver directory needs to exist."
+      fi
+      ;;
+    *)
+      break
+      ;;
+    esac
+    shift
+done
+
+iso_file="$1"
+shift
+
+if [ -z "$iso_file" ]; then
+    fatal 1 "Need an output_dir"
+fi
+iso_file=$(readlink -f ${iso_file})
+
+output_iso="$1"
+shift
+
+if [ -z "$output_iso" ]; then
+    fatal 1 "Need an output_iso"
+fi
+
+unattend_xml_file="$1"
+shift
+
+if [ -z "$unattend_xml_file" ]; then
+    fatal 1 "Need an autounattend.xml"
+fi
+
+# Setup temporary working directories
+work_dir=$(mktemp -d)
+if [ -z "$work_dir" ]; then
+    fatal 1 "Error creating temporary directory"
+fi
+atexit find "${work_dir}" -delete
+
+# Mount the ISO - use udisks because UDF can't be handled by fuseio
+
+if ! loop_dev=$(udisksctl loop-setup -f "${iso_file}" | grep -oP 'as .*'); then
+    fatal 1 "Could not mount ISO image with udisks"
+fi
+
+# Cut the string to get the /dev/loopX part
+loop_dev="${loop_dev##* }"
+loop_dev="${loop_dev%%.*}"
+
+# Ensure a mount happens.
+udisksctl mount -b "${loop_dev}" 1>/dev/null 2>&1
+atexit udisksctl unmount -b "${loop_dev}"
+
+# Find the mount path.
+if ! mnt_dir="$(udisksctl info -b "${loop_dev}" | tr -s ' ' | cut -d' ' -f2- | grep 'MountPoints' | cut -d' ' -f2)"; then
+    fatal 1 "Could not find the mount path"
+fi
+
+# Copy the install.wim to directory for editing.
+if ! mkdir -p "${work_dir}/sources"; then
+    fatal 1 "Create subdirectories"
+fi
+
+if ! cp --no-preserve=all -r "${mnt_dir}/." "${work_dir}/"; then
+    fatal 1 "Failed to copy install.wim for editing"
+fi
+
+editable_install_wim="${work_dir}/sources/install.wim"
+editable_boot_wim="${work_dir}/sources/boot.wim"
+
+bootwim_mnt_dir=$(mktemp -d)
+if [ -z "$bootwim_mnt_dir" ]; then
+    fatal 1 "Error creating temporary directory"
+fi
+atexit rmdir "${bootwim_mnt_dir}"
+
+# Collect boot.wim info.
+if ! bootwim_image_count="$(wiminfo "${work_dir}/sources/boot.wim" | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
+    fatal 1 "Could not determine number of images in the wimfile"
+fi
+
+# boot.wim editing
+mounted_dirs=()
+for i in $(seq 1 ${bootwim_image_count}); do
+    if ! mkdir "${bootwim_mnt_dir}/$i"; then
+        fatal 1 "Error creating WIM mount dir: ${bootwim_mnt_dir}/$i"
+    fi
+    atexit rmdir "${bootwim_mnt_dir}/$i"
+
+    if ! wimmountrw "${editable_boot_wim}" "$i" "${bootwim_mnt_dir}/$i" ; then
+        fatal 1 "Error mounting WIM file index: ${editable_boot_wim} ${i}"
+    fi
+    mounted_dirs+=( "${bootwim_mnt_dir}/$i" )
+    atexit "mountpoint \"${bootwim_mnt_dir}/$i\" && wimunmount \"${bootwim_mnt_dir}/$i\""
+
+    if [ -n "${drivers_dir}" ]; then
+        # Copy storage drivers only
+        mkdir -p "${bootwim_mnt_dir}/$i/Drivers"
+        cp --no-preserve=all -r -t "${bootwim_mnt_dir}/$i/Drivers" "${drivers_dir}/."
+    fi
+
+    if ! wimunmount --commit "${bootwim_mnt_dir}/$i"; then
+        fatal 1 "ERROR: failed unmounting WIM image ${bootwim_mnt_dir}/$i"
+    fi
+done
+
+wim_mnt_dir=$(mktemp -d)
+if [ -z "$wim_mnt_dir" ]; then
+    fatal 1 "Error creating temporary directory"
+fi
+atexit rmdir "${wim_mnt_dir}"
+
+# Collect install.wim info.
+if ! wim_image_count="$(wiminfo ${work_dir}/sources/install.wim | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
+    fatal 1 "Could not determine number of images in the wimfile"
+fi
+
+# install.wim editing
+mounted_dirs=()
+for i in $(seq 1 ${wim_image_count}); do
+    if ! mkdir "${wim_mnt_dir}/$i"; then
+        fatal 1 "Error creating WIM mount dir: ${wim_mnt_dir}/$i"
+    fi
+    atexit rmdir "${wim_mnt_dir}/$i"
+
+    if ! wimmountrw "${editable_install_wim}" "$i" "${wim_mnt_dir}/$i" ; then
+        fatal 1 "Error mounting WIM file index: ${editable_install_wim} ${i}"
+    fi
+    mounted_dirs+=( "${wim_mnt_dir}/$i" )
+    atexit "mountpoint \"${wim_mnt_dir}/$i\" && wimunmount \"${wim_mnt_dir}/$i\""
+
+    if [ -n "${drivers_dir}" ]; then
+        mkdir -p "${wim_mnt_dir}/$i/Drivers"
+        cp --no-preserve=all -r -t "${wim_mnt_dir}/$i/Drivers" "${drivers_dir}/."
+    fi
+
+    if ! wimunmount --commit "${wim_mnt_dir}/$i"; then
+        fatal 1 "ERROR: failed unmounting WIM image ${wim_mnt_dir}/$i"
+    fi
+done
+
+
+
+# Copy unattend to autounattend.xml
+if ! cp --no-preserve=all "$unattend_xml_file" "${work_dir}/autounattend.xml" ; then
+    fatal 1 "Error copying unattended XML file to work directory"
+fi
+
+# Remove the prompt for a key
+if ! rm -f "${work_dir}/boot/bootfix.bin" ; then
+    fatal 1 "Error removing boot keyboard prompt"
+fi
+
+if ! cp -f "${work_dir}/efi/microsoft/boot/efisys_noprompt.bin" "${work_dir}/efi/microsoft/boot/efisys.bin"; then
+    fatal 1 "Error removng EFI boot prompt"
+fi
+
+if ! cp -f "${work_dir}/efi/microsoft/boot/cdboot_noprompt.efi" "${work_dir}/efi/microsoft/boot/cdboot.efi"; then
+    fatal 1 "Error removng CD boot prompt"
+fi
+
+# Rebuild the ISO
+if ! xorriso -as mkisofs \
+        -no-emul-boot \
+        -b boot/etfsboot.com \
+        -e efi/microsoft/boot/efisys.bin \
+        -iso-level 3 \
+        -V "$(echo "${output_iso%.*}" | cut -c -32)" \
+        -o "${output_iso}" \
+        "${work_dir}" ; then
+    fatal 1 "Rebuild of ISO failed"
+fi
+
+
+exit 0

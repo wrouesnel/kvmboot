@@ -1,0 +1,109 @@
+#!/bin/bash
+# Script which isolates the driver tree from virtio for a specific Windows version.
+
+function fatal() {
+  local exit_code="$1"
+  shift
+  echo "FATAL: $*" 1>&2
+  exit "$exit_code"
+}
+
+# atexit handler
+ATEXIT=()
+
+function atexit() {
+  ATEXIT+=( "$*" )
+}
+
+function _atexit_handler() {
+  local EXPR
+  for EXPR in "${ATEXIT[@]}"; do
+    #log "atexit: $EXPR"
+    eval "$EXPR"
+  done
+}
+
+function containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+trap _atexit_handler EXIT
+
+# Collect optional arguments
+arch="amd64"
+while [ -n "$1" ] ; do
+    arg="$1"
+    case $arg in
+    --arch)
+      shift
+      arch="$1"
+      ;;
+    *)
+      break
+      ;;
+    esac
+    shift
+done
+
+iso_file="$1"
+shift
+
+if [ -z "$iso_file" ]; then
+    fatal 1 "Need an output_dir"
+fi
+
+output_dir="$1"
+shift
+
+if [ -z "$output_dir" ]; then
+    fatal 1 "Need an output_dir"
+fi
+
+windows_version="$1"
+shift
+
+if [ ! -d "$output_dir" ]; then
+    fatal 1 "$output_dir does not exist."
+fi
+
+mnt_dir="$(mktemp -d)"
+atexit rmdir "$mnt_dir"
+
+if ! fuseiso "$iso_file" "$mnt_dir"; then
+    fatal 1 "Could not mount ISO image."
+fi
+
+# Get windows versions
+mapfile -t supported_windows <  <(jq -r '.drivers[].windows_version' "${mnt_dir}/data/info.json" | sort | uniq)
+mapfile -t supported_arch <  <(jq -r '.drivers[].arch' "${mnt_dir}/data/info.json" | sort | uniq)
+
+if ! containsElement "$windows_version" "${supported_windows[@]}"; then
+    echo "Supported windows is: ${supported_windows[*]}"
+    fatal 1 "$windows_version is not a supported windows version."
+fi
+
+if ! containsElement "$arch" "${supported_arch[@]}"; then
+    echo "Supported windows is: ${supported_windows[*]}"
+    fatal 1 "$windows_version is not a supported windows version."
+fi
+
+# Loop and extract drivers for the given windows version into output_dir
+while read -r infpath; do
+    driver_dir=$(dirname $infpath)
+    driver_name="${driver_dir%%/*}"
+    rsync -r "${mnt_dir}/$driver_dir/" "${output_dir}/${driver_name}/"
+done < <(jq -r ".drivers[] | select(.windows_version == \"$windows_version\") | select(.arch == \"$arch\") | .inf_path" "${mnt_dir}/data/info.json")
+
+# Copy qemu guest agent as well.
+rsync -a "${mnt_dir}/guest-agent" "${output_dir}"
+
+chmod -R u+rw "${output_dir}"
+
+if ! fusermount -u ${mnt_dir}; then
+    fatal 2 "ERROR: dangling mountpoint in ${mnt_dir}"
+fi
+
+exit 0

@@ -1,0 +1,13 @@
+#!/bin/bash
+name="$1"
+shift
+genisoimage \
+	-f \
+	-J \
+	-joliet-long \
+	-r \
+	-allow-lowercase \
+	-allow-multidot \
+	-output "${name}.iso" \
+	-volid "$name" \
+	-rock "$@"
