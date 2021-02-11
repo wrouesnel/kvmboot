@@ -204,6 +204,14 @@
                     <Order>80</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
+
+                <!-- Finish up qemu-guest agent install-->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c C:\Drivers\virtio-win-guest-tools.exe /passive /quiet</CommandLine>
+                    <Description>Install QEMU guest agent</Description>
+                    <Order>90</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
             </FirstLogonCommands>
         </component>
     </settings>
