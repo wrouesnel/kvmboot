@@ -80,3 +80,16 @@ sudo semodule -i launch-cloud-image.pp
 This policy grants common sense access which allows read-everything but prevents updates to
 config files and other non-userdata files.
 
+# Repacking a Windows ISO for installation
+
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19 2k19
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-2k19/vioscsi \
+    --add-boot-drivers generated/virtio-2k19/viostor \
+    --add-drivers generated/virtio-2k19 \
+    --add-drivers win-2k19-server-standard/scripts \
+    downloaded/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso \
+    $(libvirt_default_pool)/win-2k19-Unattended-Virtio.iso \
+    win-2k19-server-standard/autounattend.xml
+```

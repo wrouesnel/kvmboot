@@ -56,6 +56,21 @@ while [ -n "$1" ] ; do
         fatal 1 "Driver directory needs to exist."
       fi
       ;;
+    --help)
+      cat << EOF 1>&2
+$0 [Windows ISO] [Output ISO Name] [AutoUnattend.xml file]
+
+Repack a Windows ISO for unattended installation.
+
+    --add-boot-drivers  Specify multiple times with directories to be copied to X:\Drivers in WinPE
+    --add-drivers       Specify multiple times with directories to be copied to C:\Drivers on the installed system
+    --help              Shows this help.
+
+EOF
+      ;;
+    --*)
+      fatal 1 "Unrecognized option: $1"
+      ;;
     *)
       break
       ;;
@@ -148,10 +163,12 @@ for i in $(seq 1 ${bootwim_image_count}); do
     mounted_dirs+=( "${bootwim_mnt_dir}/$i" )
     atexit "mountpoint \"${bootwim_mnt_dir}/$i\" && wimunmount \"${bootwim_mnt_dir}/$i\""
 
-    if [ -n "${bootdrivers_dir}" ]; then
+    if [ "${#bootdrivers_dir[@]}" -gt 0 ]; then
         # Copy storage drivers only
         mkdir -p "${bootwim_mnt_dir}/$i/Drivers"
-        cp --no-preserve=all -r -t "${bootwim_mnt_dir}/$i/Drivers" "${bootdrivers_dir}/."
+        for bootdriver_dir in "${bootdrivers_dir[@]}"; do
+            cp --no-preserve=all -r -t "${bootwim_mnt_dir}/$i/Drivers" "${bootdriver_dir}/."
+        done
     fi
 
     if ! wimunmount --commit "${bootwim_mnt_dir}/$i"; then
@@ -184,9 +201,11 @@ for i in $(seq 1 ${wim_image_count}); do
     mounted_dirs+=( "${wim_mnt_dir}/$i" )
     atexit "mountpoint \"${wim_mnt_dir}/$i\" && wimunmount \"${wim_mnt_dir}/$i\""
 
-    if [ -n "${drivers_dir}" ]; then
+    if [ "${#drivers_dir[@]}" -gt 0 ]; then
         mkdir -p "${wim_mnt_dir}/$i/Drivers"
-        cp --no-preserve=all -r -t "${wim_mnt_dir}/$i/Drivers" "${drivers_dir}/."
+        for driver_dir in "${drivers_dir[@]}"; do
+            cp --no-preserve=all -r -t "${wim_mnt_dir}/$i/Drivers" "${driver_dir}/."
+        done
     fi
 
     if ! wimunmount --commit "${wim_mnt_dir}/$i"; then

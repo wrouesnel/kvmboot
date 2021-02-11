@@ -41,6 +41,16 @@ while [ -n "$1" ] ; do
       shift
       arch="$1"
       ;;
+    --help)
+      cat << EOF 1>&2
+$0 [virtio ISO file] [output_directory] [windows version]
+  --arch=amd64  Select an architecture to prepare for.
+  --help        Print this output.
+EOF
+      ;;
+    --*)
+      fatal 1 "Unrecognized option: $1"
+      ;;
     *)
       break
       ;;
