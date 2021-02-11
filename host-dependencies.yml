@@ -1,0 +1,58 @@
+---
+# Playbook to prepare the local host for building windows boot ISO images
+- hosts: localhost
+  connection: local
+  vars:
+    files_dir: "{{playbook_dir}}/downloaded"
+    # ISO names
+    virtio_win_iso: "virtio-win.iso"
+    win_2k19_iso: "17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"
+  tasks:
+  - name: Ensure files dir exists
+    file:
+      path: "{{files_dir}}"
+      state: directory
+
+  - name: Download virtio drivers
+    block:
+      - name: Downloading latest stable virtio drivers
+        get_url:
+          url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+          dest: "{{files_dir}}/{{virtio_win_iso}}"
+  
+  - name: Check for Windows ISO files
+    block:
+    - name: Windows Server 2019 ISO must exist
+      stat:
+        path: "{{files_dir}}/{{win_2k19_iso}}"
+      register: win_wk19_st
+      failed_when: not win_wk19_st.stat.exists
+
+  - name: Install launch-cloud-image dependencies
+    become: true
+    package:
+      name:
+        - libvirt-daemon
+        - libvirt-daemon-system
+        - libvirt-daemon-driver-qemu
+        - libvirt-clients
+        - qemu-utils
+        - ovmf
+        - fuseiso
+        - udftools
+      state: latest
+
+  - name: Install Windows ISO manipulation dependencies
+    become: true
+    package:
+      name:
+      - xorriso
+      - rsync
+      - fuse
+      - wimtools
+      - xmlstarlet
+      state: latest
+
+  - name: check udisksctl is usable
+    command: udisksctl help
+    changed_when: False

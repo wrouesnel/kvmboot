@@ -37,13 +37,21 @@ function containsElement () {
 }
 
 # Collect optional arguments
-drivers_dir=""
+bootdrivers_dir=()
+drivers_dir=()
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
+    --add-boot-drivers)
+      shift
+      bootdrivers_dir+=( "$1" )
+      if [ ! -d "${bootdrivers_dir}" ]; then
+        fatal 1 "Driver directory needs to exist."
+      fi
+      ;;
     --add-drivers)
       shift
-      drivers_dir="$1"
+      drivers_dir+=( "$1" )
       if [ ! -d "${drivers_dir}" ]; then
         fatal 1 "Driver directory needs to exist."
       fi
@@ -140,10 +148,10 @@ for i in $(seq 1 ${bootwim_image_count}); do
     mounted_dirs+=( "${bootwim_mnt_dir}/$i" )
     atexit "mountpoint \"${bootwim_mnt_dir}/$i\" && wimunmount \"${bootwim_mnt_dir}/$i\""
 
-    if [ -n "${drivers_dir}" ]; then
+    if [ -n "${bootdrivers_dir}" ]; then
         # Copy storage drivers only
         mkdir -p "${bootwim_mnt_dir}/$i/Drivers"
-        cp --no-preserve=all -r -t "${bootwim_mnt_dir}/$i/Drivers" "${drivers_dir}/."
+        cp --no-preserve=all -r -t "${bootwim_mnt_dir}/$i/Drivers" "${bootdrivers_dir}/."
     fi
 
     if ! wimunmount --commit "${bootwim_mnt_dir}/$i"; then

@@ -65,9 +65,7 @@ fi
 windows_version="$1"
 shift
 
-if [ ! -d "$output_dir" ]; then
-    fatal 1 "$output_dir does not exist."
-fi
+mkdir -p "${output_dir}"
 
 mnt_dir="$(mktemp -d)"
 atexit rmdir "$mnt_dir"

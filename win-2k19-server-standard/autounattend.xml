@@ -114,6 +114,14 @@
             </DriverPaths>
         </component>
     </settings>
+    <settings pass="generalize">
+        <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
+        </component>
+        <component name="Microsoft-Windows-OutOfBoxExperience" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DoNotOpenInitialConfigurationTasksAtLogon>true</DoNotOpenInitialConfigurationTasksAtLogon>
+        </component>
+	</settings>
     <settings pass="specialize">
         <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <fDenyTSConnections>false</fDenyTSConnections>
@@ -157,12 +165,14 @@
                 <LogonCount>1</LogonCount>
             </AutoLogon>
             <FirstLogonCommands>
+                <!-- Disable the Network Discovery Prompt -->
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff /f</CommandLine>
                     <Description>Disable network discovery prompt for all users</Description>
                     <Order>10</Order>
                 </SynchronousCommand>
 
+                <!-- Set Execution Policy -->
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</CommandLine>
                     <Description>Set Execution Policy 64 Bit</Description>
@@ -177,39 +187,27 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
+                <!-- Setup Windows Remoting over HTTP -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c winrm quickconfig -quiet</CommandLine>
-                    <Description>winrm quickconfig -quiet</Description>
-                    <Order>50</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c winrm set winrm/config/client/auth @{Basic="true"}</CommandLine>
-                    <Description>Win RM client auth Basic</Description>
-                    <Order>60</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -Command "$hostname = $(Invoke-Expression -Command 'hostname'); $thumbprint = (New-SelfSignedCertificate -DnsName $hostname -NotAfter (Get-Date).AddMonths(1188)) -Cert Cert:\LocalMachine\My); Invoke-Expression 'winrm create winrm/config/listener?Address=*+Transport=HTTPS `@`{Hostname=`"$hostname`"`; CertificateThumbprint=`"$thumbprint`"`}'"</CommandLine>
-                    <Description>Generate self-signed host certificate for WinRM</Description>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\winrm-setup.ps1</CommandLine>
+                    <Description>Enable Windows Remoting over HTTPS</Description>
                     <Order>70</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c  netsh advfirewall firewall add rule name="Windows Remote Management (HTTPS-In)" dir=in action=allow protocol=TCP localport=5986</CommandLine>
-                    <Description>Win RM port open</Description>
-                    <Order>80</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <!-- Finish up qemu-guest agent install-->
+                <!-- Run the virtio-win installer to finish up driver installation -->
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c C:\Drivers\virtio-win-guest-tools.exe /passive /quiet</CommandLine>
                     <Description>Install QEMU guest agent</Description>
                     <Order>90</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Logoff after all setup is complete -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c logoff</CommandLine>
+                    <Description>Logoff after initial provisioning</Description>
+                    <Order>1000</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
             </FirstLogonCommands>
