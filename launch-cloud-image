@@ -232,7 +232,7 @@ else
 fi
 
 # Setup the VM disks
-if [ $opt_installer = 1 ]; then
+if [ $opt_installer = 0 ]; then
   # Get the backing volume.
   backing_vol=""
 
@@ -324,6 +324,11 @@ iso_file_path=${volnameMap[$isoname]}
 
 log "Root disk path: $root_disk_path"
 log "ISO file path: $iso_file_path"
+if [ $opt_efi = 1 ]; then
+  nvram_path="$HOME/.local/share/libvirt/qemu/nvram"
+  efi_vars_path="${nvram_path}/$(basename "$root_disk_path")_VARS.fd"
+  log "EFI vars path: ${efi_vars_path}"
+fi
 
 mac_addr="$(echo -n 52:54:00; dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '/1 ":%02X"')"
 vm_name="${image_name}"
@@ -361,13 +366,17 @@ atexit rm -f "$xml_def"
 # chmod 700 "${HOME}/shared/${image_name}/.gnupg"
 
 if [ $opt_efi = 1 ]; then
-  nvram_path="$HOME/.local/share/libvirt/qemu/nvram"
   mkdir -p "$nvram_path"
 
-  cp "/usr/share/OVMF/OVMF_VARS.fd" "${nvram_path}/${vm_name}_VARS.fd"
+  # Check if the image has existing VARs
+  if [ -e "${nvram_path}/${image_src}_VARS.fd" ]; then
+    cp "${nvram_path}/${image_src}_VARS.fd" "${efi_vars_path}"
+  else 
+    cp "/usr/share/OVMF/OVMF_VARS.fd" "${efi_vars_path}"
+  fi
 
   nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
-  nvram2="<nvram>${nvram_path}/${vm_name}_VARS.fd</nvram>"
+  nvram2="<nvram>${efi_vars_path}</nvram>"
 else
   nvram1=""
   nvram2=""
