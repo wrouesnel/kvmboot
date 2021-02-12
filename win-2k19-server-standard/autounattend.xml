@@ -111,15 +111,10 @@
             </DriverPaths>
         </component>
     </settings>
-    <settings pass="generalize">
+    <settings pass="specialize">
         <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
         </component>
-        <component name="Microsoft-Windows-OutOfBoxExperience" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <DoNotOpenInitialConfigurationTasksAtLogon>true</DoNotOpenInitialConfigurationTasksAtLogon>
-        </component>
-	</settings>
-    <settings pass="specialize">
         <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <fDenyTSConnections>false</fDenyTSConnections>
         </component>
@@ -194,7 +189,7 @@
 
                 <!-- Run the virtio-win installer to finish up driver installation -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c C:\Drivers\virtio-win-guest-tools.exe /passive /quiet</CommandLine>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\virtio-drivers.ps1</CommandLine>
                     <Description>Install QEMU guest agent</Description>
                     <Order>90</Order>
                     <RequiresUserInput>true</RequiresUserInput>
@@ -204,11 +199,11 @@
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c logoff</CommandLine>
                     <Description>Logoff after initial provisioning</Description>
-                    <Order>1000</Order>
+                    <Order>100</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
     </settings>
-    <cpi:offlineImage cpi:source="wim:c:/users/user/documents/windowsserver2019/install.wim#Windows Server 2019 SERVERSTANDARDCORE" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+    <cpi:offlineImage cpi:source="wim:c:/users/user/documents/windowsserver2019/install.wim#Windows Server 2019 SERVERSTANDARD" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
 </unattend>

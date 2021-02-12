@@ -1,5 +1,8 @@
-# Ensure PSRemoting is enabled (since we want to use WinRM)
-Enable-PSRemoting -Force
+# Enable WinRM rules
+Invoke-Expression 'winrm quickconfig -quiet'
+
+# Enable basic auth
+Invoke-Expression 'winrm set winrm/config/client/auth @{Basic="true"}'
 
 # Generate a host specific self-signed certificate
 $hostname = $(Invoke-Expression -Command 'hostname')
@@ -13,3 +16,12 @@ $thumbprint = (New-SelfSignedCertificate -DnsName $hostname -NotAfter $expiry_da
 
 # Initialize WinRM
 Invoke-Expression 'winrm create winrm/config/listener?Address=*+Transport=HTTPS `@`{Hostname=`"$hostname`"`; CertificateThumbprint=`"$thumbprint`"`}'
+
+# Create Firewall Rule
+New-NetFirewallRule `
+    -DisplayName "Windows Remote Management (HTTPS-In)" `
+    -Group "Windows Remote Management" `
+    -Direction Inbound `
+    -LocalPort 5986 `
+    -Protocol TCP `
+    -Action Allow

@@ -108,9 +108,14 @@ done < <(jq -r ".drivers[] | select(.windows_version == \"$windows_version\") | 
 # Copy qemu guest agent as well.
 rsync -a "${mnt_dir}/guest-agent" "${output_dir}"
 
+# Copy installer exe's from the root
+rsync -a "${mnt_dir}/guest-agent" "${output_dir}"
+
+rsync -a "${mnt_dir}/virtio-win-guest-tools.exe" "${output_dir}/"
+
 chmod -R u+rw "${output_dir}"
 
-if ! fusermount -u ${mnt_dir}; then
+if ! fusermount -u "${mnt_dir}"; then
     fatal 2 "ERROR: dangling mountpoint in ${mnt_dir}"
 fi
 
