@@ -154,14 +154,26 @@ if [ $opt_installer = 0 ]; then
 
   atexit "rm -rf $prep_dir"
 
-  cat > "$prep_dir/meta-data" << EOF
-instance-id: $image_name
-local-hostname: $image_name
-admin-username: $default_user
-admin-password: $default_password
+  # Build the config-drive data structure
+  mkdir -p "${prep_dir}/openstack/2012-08-10"
+  mkdir -p "${prep_dir}/openstack/content"
+  mkdir -p "${prep_dir}/ec2"
+  ln -s "${prep_dir}/openstack/2012-08-10" "${prep_dir}/openstack/latest"
+  ln -s "${prep_dir}/openstack/latest" "${prep_dir}/ec2/latest"
+
+  config_dir="${prep_dir}/openstack/2012-08-10"
+
+  cat > "${config_dir}/meta-data.json" << EOF
+  {
+    "uuid": "$image_name",
+    "name": "$image_name",
+    "hostname": "$image_name",
+    "admin_pass": "$default_password"
+    "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)"
+  }
 EOF
 
-  cat > "$prep_dir/user-data" << EOF
+  cat > "${prep_dir}/openstack/2012-08-10" << EOF
 #cloud-config
 resize_rootfs: True
 ssh_pwauth: True
@@ -170,7 +182,6 @@ timezone: $timezone
 system_info:
   default_user:
     name: "$default_user"
-    plain_text_passwd: "$default_password"
 
 ssh_authorized_keys:
 - ${ssh_authorized_key}
@@ -180,16 +191,13 @@ EOF
 
 
   # Build the user data ISO
-  if ! pushd "$prep_dir" >/dev/null 2>&1; then
-    exit 1
-  fi
 
   isopath=$(mktemp -p "" --suffix=.iso "lci.$image_name.userdata.XXXXXXXXX")
   if [ $? != 0 ]; then
     fatal 1 "Failed to create temporary ISO"
   fi
 
-  if [ -z $isopath ]; then
+  if [ -z "$isopath" ]; then
     fatal 1 "Got empty path for $isopath"
   fi
 
@@ -197,12 +205,17 @@ EOF
 
   isoname=$(basename "$isopath")
 
-  if ! genisoimage -output "$isopath" -volid cidata -joliet -rock user-data meta-data >/dev/null 2>&1 ; then
-    exit 1
-  fi
-
-  if ! popd  >/dev/null 2>&1; then
-    exit 1
+  if ! xorriso \
+        -outdev "$isopath" \
+        -blank as_needed \
+        -volid config-2 \
+        -joliet on \
+        -follow on \
+        -map "${prep_dir}" "/" \
+        -commit \
+        -close \
+        ; then
+    fatal 1 "Error generating config-drive ISO."
   fi
 
   # Upload the ISO to the pool then clean up
