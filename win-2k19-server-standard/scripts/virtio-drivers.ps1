@@ -1,6 +1,6 @@
 # Install virtio drivers and suppress prompts to trust
 
-# This block adds trust to all the certificates in the drivers dir.
+Write-Verbose "Adding trust for Red Hat virtio drivers..."
 $DriverPath = Get-Item "C:\Drivers\*" 
 
 $CertStore = Get-Item "cert:\LocalMachine\TrustedPublisher" 
@@ -10,6 +10,10 @@ Get-ChildItem -Recurse -Path $DriverPath -Filter "*.cat" | % {
     Write-Host ( "Added {0}, {1} from {2}" -f $Cert.Thumbprint,$Cert.Subject,$_.FullName )
     $CertStore.Add($Cert)
 }
+Write-Verbose "Added trust for Red Hat virtio drivers."
 
-# Now we can run the installer in quiet mode.
-Invoke-Expression "C:\Drivers\virtio-win-guest-tools.exe /passive /wait"
+Write-Verbose "Installing Virtio Guest Drivers..."
+Start-Process "C:\Drivers\virtio-win-guest-tools.exe" `
+    -ArgumentList "/passive"
+    -Wait
+Write-Verbose "Installed Virtio Guest Drivers."

@@ -181,6 +181,14 @@
 
                 <!-- Run the virtio-win installer to finish up driver installation -->
                 <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\virtio-drivers.ps1</CommandLine>
+                    <Description>Install QEMU guest agent</Description>
+                    <Order>90</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Enable misc firewall rules -->
+                <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\firewall-misc.ps1</CommandLine>
                     <Description>Miscellaneous Firewall Setup</Description>
                     <Order>50</Order>
@@ -203,15 +211,7 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
-                <!-- Run the virtio-win installer to finish up driver installation -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\virtio-drivers.ps1</CommandLine>
-                    <Description>Install QEMU guest agent</Description>
-                    <Order>90</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <!-- Logoff after all setup is complete -->
+                <!-- Log off after all setup is complete -->
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c logoff</CommandLine>
                     <Description>Logoff after initial provisioning</Description>
