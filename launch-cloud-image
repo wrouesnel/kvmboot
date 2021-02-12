@@ -163,7 +163,7 @@ if [ $opt_installer = 0 ]; then
 
   config_dir="${prep_dir}/openstack/2012-08-10"
 
-  cat > "${config_dir}/meta-data.json" << EOF
+  cat > "${config_dir}/meta_data.json" << EOF
   {
     "uuid": "$image_name",
     "name": "$image_name",
@@ -173,7 +173,7 @@ if [ $opt_installer = 0 ]; then
   }
 EOF
 
-  cat > "${prep_dir}/openstack/2012-08-10" << EOF
+  cat > "${prep_dir}/openstack/2012-08-10/user_data" << EOF
 #cloud-config
 resize_rootfs: True
 ssh_pwauth: True
