@@ -183,7 +183,7 @@
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\virtio-drivers.ps1</CommandLine>
                     <Description>Install QEMU guest agent</Description>
-                    <Order>90</Order>
+                    <Order>50</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
@@ -191,7 +191,7 @@
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\firewall-misc.ps1</CommandLine>
                     <Description>Miscellaneous Firewall Setup</Description>
-                    <Order>50</Order>
+                    <Order>60</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
@@ -199,7 +199,7 @@
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\winrm-setup.ps1</CommandLine>
                     <Description>Enable Windows Remoting over HTTPS</Description>
-                    <Order>60</Order>
+                    <Order>70</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
@@ -207,7 +207,7 @@
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\ssh.ps1</CommandLine>
                     <Description>Enable SSH</Description>
-                    <Order>70</Order>
+                    <Order>80</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 

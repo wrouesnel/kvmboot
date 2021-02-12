@@ -14,6 +14,6 @@ Write-Verbose "Added trust for Red Hat virtio drivers."
 
 Write-Verbose "Installing Virtio Guest Drivers..."
 Start-Process "C:\Drivers\virtio-win-guest-tools.exe" `
-    -ArgumentList "/passive"
+    -ArgumentList "/passive /quiet" `
     -Wait
 Write-Verbose "Installed Virtio Guest Drivers."

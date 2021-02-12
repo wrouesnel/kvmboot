@@ -4,17 +4,17 @@
 Write-Verbose "Verifying WinRM service."
 If (!(Get-Service "WinRM"))
 {
-    Write-Log "Unable to find the WinRM service."
+    Write-Verbose "Unable to find the WinRM service."
     Throw "Unable to find the WinRM service."
 }
 ElseIf ((Get-Service "WinRM").Status -ne "Running")
 {
     Write-Verbose "Setting WinRM service to start automatically on boot."
     Set-Service -Name "WinRM" -StartupType Automatic
-    Write-Log "Set WinRM service to start automatically on boot."
+    Write-Verbose "Set WinRM service to start automatically on boot."
     Write-Verbose "Starting WinRM service."
     Start-Service -Name "WinRM" -ErrorAction Stop
-    Write-Log "Started WinRM service."
+    Write-Verbose "Started WinRM service."
 
 }
 
@@ -23,7 +23,7 @@ If (!(Get-PSSessionConfiguration -Verbose:$false) -or (!(Get-ChildItem WSMan:\lo
 {
     Write-Verbose "Enabling PS Remoting without checking Network profile."
     Enable-PSRemoting -SkipNetworkProfileCheck -Force -ErrorAction Stop
-    Write-Log "Enabled PS Remoting without checking Network profile."
+    Write-Verbose "Enabled PS Remoting without checking Network profile."
 }
 Else
 {
@@ -82,7 +82,7 @@ If (!($listeners | Where-Object {$_.Keys -like "TRANSPORT=HTTPS"}))
 
     Write-Verbose "Enabling SSL listener."
     New-WSManInstance -ResourceURI 'winrm/config/Listener' -SelectorSet $selectorset -ValueSet $valueset
-    Write-Log "Enabled SSL listener."
+    Write-Verbose "Enabled SSL listener."
 }
 Else
 {
@@ -92,7 +92,7 @@ Else
 Write-Verbose "Disabling HTTP listener"
 Remove-WSManInstance `
     -ResourceURI 'winrm/config/Listener' `
-    -SelectorSet Address="*";Transport="HTTP"
+    -SelectorSet @{Address="*";Transport="HTTP"}
 Write-Verbose "Disabled HTTP listener"
 
 # Check for basic authentication.
@@ -101,15 +101,12 @@ If (($basicAuthSetting.Value) -eq $false)
 {
     Write-Verbose "Enabling basic auth support."
     Set-Item -Path "WSMan:\localhost\Service\Auth\Basic" -Value $true
-    Write-Log "Enabled basic auth support."
+    Write-Verbose "Enabled basic auth support."
 }
 Else
 {
     Write-Verbose "Basic auth is already enabled."
 }
-
-# Initialize WinRM
-Invoke-Expression 'winrm create winrm/config/listener?Address=*+Transport=HTTPS `@`{Hostname=`"$hostname`"`; CertificateThumbprint=`"$thumbprint`"`}'
 
 $windowsRemotingFirewallGroup = "@FirewallAPI.dll,-30267"
 
@@ -122,6 +119,7 @@ New-NetFirewallRule `
     -LocalPort 5986 `
     -Protocol TCP `
     -Action Allow `
+    -Enabled True `
     -Profile Private,Domain
 
 New-NetFirewallRule `
@@ -132,6 +130,7 @@ New-NetFirewallRule `
     -LocalPort 5986 `
     -Protocol TCP `
     -Action Allow `
+    -Enabled True `
     -Profile Public
 
 Write-Verbose "Disabling WinRM HTTP rules"
