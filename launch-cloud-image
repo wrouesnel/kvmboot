@@ -164,13 +164,13 @@ if [ $opt_installer = 0 ]; then
   config_dir="${prep_dir}/openstack/2012-08-10"
 
   cat > "${config_dir}/meta_data.json" << EOF
-  {
-    "uuid": "$image_name",
-    "name": "$image_name",
-    "hostname": "$image_name",
-    "admin_pass": "$default_password"
-    "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)"
-  }
+{
+  "uuid": "$image_name",
+  "name": "$image_name",
+  "hostname": "$image_name",
+  "admin_pass": "$default_password",
+  "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)"
+}
 EOF
 
   cat > "${prep_dir}/openstack/2012-08-10/user_data" << EOF
