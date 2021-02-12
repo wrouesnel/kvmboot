@@ -67,7 +67,7 @@ If (!($listeners | Where-Object {$_.Keys -like "TRANSPORT=HTTPS"}))
 {
     # We cannot use New-SelfSignedCertificate on 2012R2 and earlier
     $thumbprint = New-LegacySelfSignedCert -SubjectName $SubjectName -ValidDays $CertValidityDays
-    Write-HostLog "Self-signed SSL certificate generated; thumbprint: $thumbprint"
+    Write-Verbose "Self-signed SSL certificate generated; thumbprint: $thumbprint"
 
     # Create the hashtables of settings to be used.
     $valueset = @{
