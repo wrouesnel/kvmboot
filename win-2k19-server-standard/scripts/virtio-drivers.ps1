@@ -12,4 +12,4 @@ Get-ChildItem -Recurse -Path $DriverPath -Filter "*.cat" | % {
 }
 
 # Now we can run the installer in quiet mode.
-Invoke-Expression "C:\Drivers\virtio-win-guest-tools.exe /passive /quiet"
+Invoke-Expression "C:\Drivers\virtio-win-guest-tools.exe /passive /wait"

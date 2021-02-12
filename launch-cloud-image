@@ -521,42 +521,47 @@ if ! $virsh start "${vm_name}" 1>&2 ; then
   fatal 1 "Failed to start the new virtual machine"
 fi
 
-vm_dns="${vm_name}.default.libvirt"
-
-# Wait for the machine to boot to SSH completion
-while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
-  sleep 0.5
-done
-
-if [ $opt_windows = 0 ]; then
-  while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
-    sleep 0.5
-  done
+if [ $opt_installer = 1 ]; then
+  echo "See the VM console for installer completion."
 else
-  while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
+  # Normal case - do SSH setup.
+  vm_dns="${vm_name}.default.libvirt"
+
+  # Wait for the machine to boot to SSH completion
+  while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
     sleep 0.5
   done
+
+  if [ $opt_windows = 0 ]; then
+    while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
+      sleep 0.5
+    done
+  else
+    while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
+      sleep 0.5
+    done
+  fi
+
+  vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
+  if [ $? != 0 ]; then
+    fatal 1 "VM IP failed to be resolved."
+  fi
+
+  # Inject the new machine into the current users known_hosts and remove any other entries
+  # TODO: hide output except on error.
+  ssh-keygen -R "${vm_dns}" >/dev/null 2>&1
+  ssh-keygen -R "${vm_ip}" >/dev/null 2>&1
+  ssh-keygen -R "${vm_dns},${vm_ip}" >/dev/null 2>&1
+
+  { 
+    ssh-keyscan -H "${vm_dns},${vm_ip}" 2>/dev/null
+    ssh-keyscan -H "${vm_ip}" 2>/dev/null
+    ssh-keyscan -H "${vm_dns}" 2>/dev/null
+  } >> "$HOME/.ssh/known_hosts"
+
+  # TODO: Create an ansible-like inventory file entry for the machine.
+  # The idea is you just do cat *.inventory > inventory to build something to work with.
+
+  # Write the machine hostname to stdout.
+  echo "${vm_dns}" : "$default_user" : "$default_password"
 fi
-
-vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
-if [ $? != 0 ]; then
-  fatal 1 "VM IP failed to be resolved."
-fi
-
-# Inject the new machine into the current users known_hosts and remove any other entries
-# TODO: hide output except on error.
-ssh-keygen -R "${vm_dns}" >/dev/null 2>&1
-ssh-keygen -R "${vm_ip}" >/dev/null 2>&1
-ssh-keygen -R "${vm_dns},${vm_ip}" >/dev/null 2>&1
-
-{ 
-  ssh-keyscan -H "${vm_dns},${vm_ip}" 2>/dev/null
-  ssh-keyscan -H "${vm_ip}" 2>/dev/null
-  ssh-keyscan -H "${vm_dns}" 2>/dev/null
-} >> "$HOME/.ssh/known_hosts"
-
-# TODO: Create an ansible-like inventory file entry for the machine.
-# The idea is you just do cat *.inventory > inventory to build something to work with.
-
-# Write the machine hostname to stdout.
-echo "${vm_dns}" : "$default_user" : "$default_password"
