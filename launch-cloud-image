@@ -165,17 +165,15 @@ if [ $opt_installer = 0 ]; then
 
   cat > "${config_dir}/meta_data.json" << EOF
 {
-  "meta":{
-    {
-      "uuid": "$image_name",
-      "name": "$image_name",
-      "hostname": "$image_name",
-      "admin_username": "$default_user",
-      "admin_pass": "$default_password",
-      "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)",
-      "public_keys": {
-        "default": "${ssh_authorized_key}"
-      }
+  "meta": {
+    "uuid": "$image_name",
+    "name": "$image_name",
+    "hostname": "$image_name",
+    "admin_username": "$default_user",
+    "admin_pass": "$default_password",
+    "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)",
+    "public_keys": {
+      "default": "${ssh_authorized_key}"
     }
   }
 }
