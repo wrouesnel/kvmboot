@@ -165,11 +165,19 @@ if [ $opt_installer = 0 ]; then
 
   cat > "${config_dir}/meta_data.json" << EOF
 {
-  "uuid": "$image_name",
-  "name": "$image_name",
-  "hostname": "$image_name",
-  "admin_pass": "$default_password",
-  "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)"
+  "meta":{
+    {
+      "uuid": "$image_name",
+      "name": "$image_name",
+      "hostname": "$image_name",
+      "admin_username": "$default_user",
+      "admin_pass": "$default_password",
+      "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)",
+      "public_keys": {
+        "default": "${ssh_authorized_key}"
+      }
+    }
+  }
 }
 EOF
 
@@ -244,6 +252,9 @@ else
   isoname="$image_src"
 fi
 
+# Controls whether we clean up disks after a failure.
+disks_in_use=0
+
 # Setup the VM disks
 if [ $opt_installer = 0 ]; then
   # Get the backing volume.
@@ -291,6 +302,7 @@ else
     fatal 1 "Could not create machine attached volume."
   fi
 fi
+atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$pool" "$root_disk" )"
 
 extra_disks=()
 if [ ! -z "$opt_extra_disks" ]; then
@@ -309,7 +321,7 @@ if [ ! -z "$opt_extra_disks" ]; then
       --prealloc-metadata 1>&2 ; then
       disk_failure=1
     fi
-
+    atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$pool" "$extra_disk_path" )"
     extra_disks+=( "${extra_disk_path}" )
 
   done < <(echo "$opt_extra_disks" | tr ',' '\n')
@@ -334,6 +346,10 @@ done < <($virsh vol-list --pool "$pool")
 
 root_disk_path=${volnameMap[$root_disk]}
 iso_file_path=${volnameMap[$isoname]}
+
+if [ -z "$iso_file_path" ]; then
+  fatal 1 "Failed to set an ISO file."
+fi
 
 log "Root disk path: $root_disk_path"
 log "ISO file path: $iso_file_path"
@@ -536,6 +552,7 @@ if ! $virsh define --file "${xml_def}" 1>&2; then
 fi
 
 # ISO deletion no longer allowed
+disks_in_use=1
 vm_created=1 
 log "Virtual machine created as: ${vm_name}"
 

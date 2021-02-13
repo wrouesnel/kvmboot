@@ -53,21 +53,17 @@ $SubjectName = $(Invoke-Expression -Command 'hostname')
 $expiry_date = (Get-Date).AddMonths(1188)
 $notBefore = (Get-Date).AddDays(-1)
 
-# Generate and get thumbprint
-$thumbprint = (New-SelfSignedCertificate `
-    -DnsName $SubjectName `
-    -NotBefore $notBefore `
-    -NotAfter $expiry_date `
-    -Cert Cert:\LocalMachine\My).Thumbprint
-
-
 # Make sure there is a SSL listener.
 $listeners = Get-ChildItem WSMan:\localhost\Listener
 If (!($listeners | Where-Object {$_.Keys -like "TRANSPORT=HTTPS"}))
 {
-    # We cannot use New-SelfSignedCertificate on 2012R2 and earlier
-    $thumbprint = New-LegacySelfSignedCert -SubjectName $SubjectName -ValidDays $CertValidityDays
+    # Generate and get thumbprint
     Write-Verbose "Self-signed SSL certificate generated; thumbprint: $thumbprint"
+    $thumbprint = (New-SelfSignedCertificate `
+        -DnsName $SubjectName `
+        -NotBefore $notBefore `
+        -NotAfter $expiry_date `
+        -Cert Cert:\LocalMachine\My).Thumbprint
 
     # Create the hashtables of settings to be used.
     $valueset = @{
@@ -138,7 +134,9 @@ $rules = Get-NetFirewallRule -Group $windowsRemotingFirewallGroup
 
 foreach ($rule in $rules) {
     switch ($rule.Name) {
-        {"WINRM-HTTP-In-TCP", "WINRM-HTTP-In-TCP"} {
+        # Disable the HTTP firewall rules.
+        {@("WINRM-HTTP-In-TCP", "WINRM-HTTP-In-TCP-PUBLIC") -contains $_} 
+        {
             Write-Verbose "Disabling builtin WinRM HTTP rule: $_.DisplayName"
             Set-NetFirewallRule -Name $rule.Name -Enabled False
         }

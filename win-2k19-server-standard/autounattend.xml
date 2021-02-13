@@ -1,21 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
     <settings pass="windowsPE">
-        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <InputLocale>en-US</InputLocale>
             <SystemLocale>en-US</SystemLocale>
             <UILanguage>en-US</UILanguage>
             <UserLocale>en-US</UserLocale>
             <UILanguageFallback>en-US</UILanguageFallback>
         </component>
-        <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>
                 <PathAndCredentials wcm:keyValue="1" wcm:action="add">
-                    <Path>X:\Drivers</Path> 
+                    <Path>X:\Drivers</Path>
                 </PathAndCredentials>
             </DriverPaths>
         </component>
-        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <UserData>
                 <AcceptEula>true</AcceptEula>
             </UserData>
@@ -34,7 +40,7 @@
                 </OSImage>
             </ImageInstall>
             <DiskConfiguration>
-                <WillShowUI>OnError</WillShowUI> 
+                <WillShowUI>OnError</WillShowUI>
                 <Disk wcm:action="add">
                     <CreatePartitions>
                         <CreatePartition wcm:action="add">
@@ -76,7 +82,9 @@
         </component>
     </settings>
     <settings pass="offlineServicing">
-            <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>
                 <PathAndCredentials wcm:keyValue="1" wcm:action="add">
                     <Path>X:\Drivers\Balloon</Path>
@@ -112,13 +120,19 @@
         </component>
     </settings>
     <settings pass="specialize">
-        <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
         </component>
-        <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <fDenyTSConnections>false</fDenyTSConnections>
         </component>
-        <component name="Networking-MPSSVC-Svc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Networking-MPSSVC-Svc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <FirewallGroups>
                 <FirewallGroup wcm:action="add" wcm:keyValue="RemoteDesktop">
                     <Active>true</Active>
@@ -132,13 +146,17 @@
                 </FirewallGroup>
             </FirewallGroups>
         </component>
-        <component name="Microsoft-Windows-TerminalServices-RDP-WinStationExtensions" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-TerminalServices-RDP-WinStationExtensions" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <SecurityLayer>1</SecurityLayer>
             <UserAuthentication>0</UserAuthentication>
         </component>
     </settings>
     <settings pass="oobeSystem">
-        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <UserAccounts>
                 <AdministratorPassword>
                     <Value>hunter2</Value>
@@ -156,6 +174,14 @@
                 Commands below log out once finished.-->
                 <LogonCount>1</LogonCount>
             </AutoLogon>
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>1</ProtectYourPC>
+                <SkipMachineOOBE>true</SkipMachineOOBE>
+                <SkipUserOOBE>true</SkipUserOOBE>
+            </OOBE>
             <FirstLogonCommands>
                 <!-- Disable the Network Discovery Prompt -->
                 <SynchronousCommand wcm:action="add">
@@ -171,7 +197,7 @@
                     <Order>30</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
-                
+
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>C:\Windows\SysWOW64\cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</CommandLine>
                     <Description>Set Execution Policy 32 Bit</Description>
@@ -179,9 +205,17 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
+                <!-- Create a less annoying default shell -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</CommandLine>
+                    <Description>Configure Windows UX</Description>
+                    <Order>45</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
                 <!-- Run the virtio-win installer to finish up driver installation -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\virtio-drivers.ps1</CommandLine>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\virtio-drivers.ps1</CommandLine>
                     <Description>Install QEMU guest agent</Description>
                     <Order>50</Order>
                     <RequiresUserInput>true</RequiresUserInput>
@@ -189,7 +223,7 @@
 
                 <!-- Enable misc firewall rules -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\firewall-misc.ps1</CommandLine>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\firewall-misc.ps1</CommandLine>
                     <Description>Miscellaneous Firewall Setup</Description>
                     <Order>60</Order>
                     <RequiresUserInput>true</RequiresUserInput>
@@ -197,7 +231,7 @@
 
                 <!-- Setup Windows Remoting over HTTP -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\winrm-setup.ps1</CommandLine>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\winrm-setup.ps1</CommandLine>
                     <Description>Enable Windows Remoting over HTTPS</Description>
                     <Order>70</Order>
                     <RequiresUserInput>true</RequiresUserInput>
@@ -205,21 +239,30 @@
 
                 <!-- Setup Windows Remoting over HTTP -->
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\ssh.ps1</CommandLine>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ssh.ps1</CommandLine>
                     <Description>Enable SSH</Description>
                     <Order>80</Order>
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
-                <!-- Log off after all setup is complete -->
+                <!-- Install Cloudbase-Init and Sysprep -->
                 <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\cloudbaseinit.ps1</CommandLine>
+                    <Description>Install cloudbase-init and sysprep</Description>
+                    <Order>90</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Log off after all setup is complete -->
+                <!-- <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c logoff</CommandLine>
                     <Description>Logoff after initial provisioning</Description>
                     <Order>100</Order>
                     <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                </SynchronousCommand> -->
             </FirstLogonCommands>
         </component>
     </settings>
-    <cpi:offlineImage cpi:source="wim:c:/users/user/documents/windowsserver2019/install.wim#Windows Server 2019 SERVERSTANDARD" xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+    <cpi:offlineImage cpi:source="wim:c:/users/user/documents/windowsserver2019/install.wim#Windows Server 2019 SERVERSTANDARD"
+        xmlns:cpi="urn:schemas-microsoft-com:cpi" />
 </unattend>
