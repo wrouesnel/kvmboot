@@ -23,6 +23,10 @@ Copy-Item "C:\Drivers\cloudbase-init\Unattend.xml" `
 Copy-Item "C:\Drivers\cloudbase-init\sshpublickeyswin19k.py" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\plugins\common"
 
+# Copy ConfigDrive override
+Copy-Item "C:\Drivers\cloudbase-init\modifiedconfigdrive.py" `
+    -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\metadata"
+
 # Execute the sysprep action and shutdown.
 # Note: I have no idea why sysprep won't run when we use Start-Process like you'd expect to.
 # So here we are doing Invoke-Expression, and not touching this very long line which works.
