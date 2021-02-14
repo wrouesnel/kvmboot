@@ -19,6 +19,11 @@ Copy-Item "C:\Drivers\cloudbase-init\cloudbase-init-unattend.conf" `
 Copy-Item "C:\Drivers\cloudbase-init\Unattend.xml" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"
 
+# Drop the UX script into LocalScripts so it can run on the first Administrator provisioning
+# cycle, rather then first user logon.
+Copy-Item "C:\Drivers\scripts\ux.ps1" `
+    -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\LocalScripts\ux.ps1"
+
 # Copy the override for SSH key provisioning for Administrators
 Copy-Item "C:\Drivers\cloudbase-init\sshpublickeyswin19k.py" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\plugins\common"
