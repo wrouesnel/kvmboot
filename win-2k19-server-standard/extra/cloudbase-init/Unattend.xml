@@ -24,7 +24,7 @@
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</CommandLine>
                     <Description>Configure Windows UX</Description>
                     <Order>45</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
+                    <RequiresUserInput>false</RequiresUserInput>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
