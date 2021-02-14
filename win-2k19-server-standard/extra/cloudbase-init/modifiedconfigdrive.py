@@ -17,20 +17,12 @@
 
 from oslo_log import log as oslo_logging
 
-from cloudbaseinit import conf as cloudbaseinit_conf
-from cloudbaseinit.metadata.services import baseconfigdrive
-from cloudbaseinit.metadata.services import baseopenstackservice
 from cloudbaseinit.metadata.services import configdrive
 
-CONF = cloudbaseinit_conf.CONF
 LOG = oslo_logging.getLogger(__name__)
 
 
-class ModifiedConfigDriveService(configdrive.ConfigDrive):
-
-    def __init__(self):
-        super(ModifiedConfigDriveService, self).__init__(
-            'config-2', 'openstack\\latest\\meta_data.json')
-
+class ModifiedConfigDriveService(configdrive.ConfigDriveService):
+    
     def get_admin_username(self):
         return self._get_meta_data().get('meta', {}).get('admin_username')

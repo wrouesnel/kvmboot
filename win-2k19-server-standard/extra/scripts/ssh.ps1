@@ -4,6 +4,8 @@ $packageName = (Get-WindowsCapability -Online | ? Name -like 'OpenSSH.Server*')[
 Add-WindowsCapability -Online -Name $packageName
 
 # Configure Powershell as the default shell.
+New-Item -Path "HKLM:\SOFTWARE" -Name "OpenSSH"
+
 New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" `
     -Name DefaultShell `
     -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" `

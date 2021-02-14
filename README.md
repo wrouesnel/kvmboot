@@ -102,22 +102,33 @@ function libvirt_default_pool() {
     win-2k19-server-standard/autounattend.xml
 ```
 
-## Injecting an initial SSH key for Administrator
-This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
-
-Then launch with:
+Then launch to install the base image:
 
 ```bash
 ./launch-cloud-image --efi --windows --installer win-2k19-Unattended-Virtio.iso Win2k19-Base
 ```
 
+Then spawn a cloud image to test with:
+
+```bash
+./launch-cloud-image --efi --windows lci.Win2k19-Base.root.qcow2 t1
+```
+
+The image that comes up should be able to be SSH'd into Powershell using your default SSH
+key. The user will have your name but be administrator.
+
+## Injecting an initial SSH key for Administrator
+This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
+
 ## Windows ISO Issues
 
 [x] Hostname doesn't DHCP properly in cloud-init until login
-[ ] Is the Administrator account being disabled properly?
+[x] Is the Administrator account being disabled properly?
 [x] Is the password being set properly?
 
-# Note: Cloudbase Init Unattended install support params
+# References
+
+## Cloudbase Init Unattended install support params
 
 ```
 msiexec /i CloudbaseInitSetup_x64.msi /qn /l*v log.txt CLOUDBASEINITCONFFOLDER="C:\" LOGGINGSERIALPORTNAME="COM1" BINFOLDER="C:\bin" LOGFOLDER="C:\log" USERNAME="admin1" INJECTMETADATAPASSWORD="TRUE" USERGROUPS="Administrators" LOGGINGSERIALPORTNAME="COM2" LOCALSCRIPTSFOLDER="C:\localscripts"
@@ -126,6 +137,9 @@ There are also MAAS related parameters that you can define. Here is the list: MA
 ```
 
 Sysprep action
+
+Note: for some reason this doesn't launch with Start-Process in Powershell.
+
 ```
 cd C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf
 
