@@ -16,12 +16,34 @@ You need NetworkManager configured to use systemd-resolved.
 
 ## Edit the default bridge to enable DNS
 
+```bash
 virsh -c qemu:///system net-edit default 
+```
 
 Add the line: `<domain name='default.libvirt' localOnly='yes' />`
 
+A complete confirguraiton will look something like:
+
+```xml
+<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
+  <name>default</name>
+  <forward mode='nat'/>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:a0:27:2f'/>
+  <domain name='default.libvirt' localOnly='yes'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+```
+The dnsmasq options ensure that changing hostnames are reflected into dnsmasq by libvirt.
+
+```bash
 virsh -c qemu:///system net-destroy default 
 virsh -c qemu:///system net-start default 
+```
 
 ## Configure Network Manager
 
@@ -120,12 +142,6 @@ key. The user will have your name but be administrator.
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
 
-## Windows ISO Issues
-
-[x] Hostname doesn't DHCP properly in cloud-init until login
-[x] Is the Administrator account being disabled properly?
-[x] Is the password being set properly?
-
 # References
 
 ## Cloudbase Init Unattended install support params
@@ -136,7 +152,7 @@ msiexec /i CloudbaseInitSetup_x64.msi /qn /l*v log.txt CLOUDBASEINITCONFFOLDER="
 There are also MAAS related parameters that you can define. Here is the list: MAASMETADATAURL, MAASOAUTHCONSUMERKEY, MAASOAUTHCONSUMERSECRET, MAASOAUTHTOKENKEY, MAASOAUTHTOKENSECRET.
 ```
 
-Sysprep action
+## Sysprep action
 
 Note: for some reason this doesn't launch with Start-Process in Powershell.
 
