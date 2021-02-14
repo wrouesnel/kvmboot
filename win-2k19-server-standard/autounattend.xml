@@ -205,6 +205,14 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
+                <!-- Configure virtualization defaults -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\vm.ps1</CommandLine>
+                    <Description>Configure Virtualization defaults</Description>
+                    <Order>44</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
                 <!-- Create a less annoying default shell -->
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</CommandLine>
