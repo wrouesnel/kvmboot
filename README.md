@@ -112,10 +112,10 @@ function libvirt_default_pool() {
 # Repacking a Windows ISO for installation
 
 ```bash
-./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19 2k19
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19/virtio 2k19
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-2k19/vioscsi \
-    --add-boot-drivers generated/virtio-2k19/viostor \
+    --add-boot-drivers generated/virtio-2k19/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-2k19/virtio/viostor \
     --add-drivers generated/virtio-2k19 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-2k19-server-standard/extra \

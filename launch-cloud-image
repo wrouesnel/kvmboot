@@ -140,7 +140,7 @@ fi
 echo "$ssh_authorized_key"
 
 # Refresh storage pool before going further
-"$virsh" pool-refresh "$pool" 1>/dev/null 2>&1
+$virsh pool-refresh "$pool" 1> /dev/null 2>&1
 
 if [ $opt_installer = 0 ]; then
   prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
