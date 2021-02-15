@@ -31,7 +31,7 @@
       block:
         - name: installer dir
           file:
-            path: "{{files_dir}}/cloudbaseinit/"
+            path: "{{files_dir}}/cloudbase-init/"
             state: directory
         - get_url:
             url: https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi

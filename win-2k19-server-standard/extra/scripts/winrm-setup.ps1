@@ -38,7 +38,7 @@ $token_prop_name = "LocalAccountTokenFilterPolicy"
 $token_key = Get-Item -Path $token_path
 $token_value = $token_key.GetValue($token_prop_name, $null)
 if ($token_value -ne 1) {
-    Write-Verbose "Setting LocalAccountTOkenFilterPolicy to 1"
+    Write-Verbose "Setting LocalAccountTokenFilterPolicy to 1"
     if ($null -ne $token_value) {
         Remove-ItemProperty -Path $token_path -Name $token_prop_name
     }
@@ -107,30 +107,11 @@ Else
 $windowsRemotingFirewallGroup = "@FirewallAPI.dll,-30267"
 
 # Create Firewall Rule
-New-NetFirewallRule `
-    -DisplayName "Windows Remote Management (HTTPS-In)" `
-    -Name "WINRM-HTTPS-In-TCP" `
-    -Group $windowsRemotingFirewallGroup `
-    -Direction Inbound `
-    -LocalPort 5986 `
-    -Protocol TCP `
-    -Action Allow `
-    -Enabled True `
-    -Profile Private,Domain
-
-New-NetFirewallRule `
-    -DisplayName "Windows Remote Management (HTTPS-In)" `
-    -Name "WINRM-HTTPS-In-TCP-PUBLIC" `
-    -Group $windowsRemotingFirewallGroup `
-    -Direction Inbound `
-    -LocalPort 5986 `
-    -Protocol TCP `
-    -Action Allow `
-    -Enabled True `
-    -Profile Public
-
 Write-Verbose "Disabling WinRM HTTP rules"
 $rules = Get-NetFirewallRule -Group $windowsRemotingFirewallGroup
+
+$needHttpsPrivate = $true
+$needHttpsPublic = $true
 
 foreach ($rule in $rules) {
     switch ($rule.Name) {
@@ -140,6 +121,39 @@ foreach ($rule in $rules) {
             Write-Verbose "Disabling builtin WinRM HTTP rule: $_.DisplayName"
             Set-NetFirewallRule -Name $rule.Name -Enabled False
         }
+        "WINRM-HTTPS-In-TCP"
+        {
+            $needHttpsPrivate = $false
+        }
+        "WINRM-HTTPS-In-TCP-PUBLIC"
+        {
+            $needHttpsPublic = $false
+        }
     }
 }
-Write-Verbose "Disabled WinRM HTTP rules"
+
+if ($needHttpsPrivate) {
+    New-NetFirewallRule `
+        -DisplayName "Windows Remote Management (HTTPS-In)" `
+        -Name "WINRM-HTTPS-In-TCP" `
+        -Group $windowsRemotingFirewallGroup `
+        -Direction Inbound `
+        -LocalPort 5986 `
+        -Protocol TCP `
+        -Action Allow `
+        -Enabled True `
+        -Profile Private,Domain
+}
+
+if ($needHttpsPublic) {
+    New-NetFirewallRule `
+        -DisplayName "Windows Remote Management (HTTPS-In)" `
+        -Name "WINRM-HTTPS-In-TCP-PUBLIC" `
+        -Group $windowsRemotingFirewallGroup `
+        -Direction Inbound `
+        -LocalPort 5986 `
+        -Protocol TCP `
+        -Action Allow `
+        -Enabled True `
+        -Profile Public
+}
