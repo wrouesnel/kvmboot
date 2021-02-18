@@ -124,6 +124,15 @@ function libvirt_default_pool() {
     win-2k19-server-standard/autounattend.xml
 ```
 
+## Windows 10 User Machine
+```bash
+./prepare-windows-iso \
+    --add-drivers win-10-no-libvirt/extra \
+    downloaded/Win10_20H2_v2_English_x64.iso \
+    win10-unattended.iso \
+    win-10-no-libvirt/autounattend.xml
+```
+
 Then launch to install the base image:
 
 ```bash

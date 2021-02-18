@@ -97,7 +97,7 @@ unattend_xml_file="$1"
 shift
 
 if [ -z "$unattend_xml_file" ]; then
-    fatal 1 "Need an autounattend.xml"
+    echo "WARN: No autounattend.xml file specified!"
 fi
 
 # Setup temporary working directories
@@ -216,8 +216,10 @@ done
 
 
 # Copy unattend to autounattend.xml
-if ! cp --no-preserve=all "$unattend_xml_file" "${work_dir}/autounattend.xml" ; then
-    fatal 1 "Error copying unattended XML file to work directory"
+if [ -n "$unattend_xml_file" ]; then
+    if ! cp --no-preserve=all "$unattend_xml_file" "${work_dir}/autounattend.xml" ; then
+        fatal 1 "Error copying unattended XML file to work directory"
+    fi
 fi
 
 # Remove the prompt for a key
