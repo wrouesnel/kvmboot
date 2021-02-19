@@ -248,3 +248,43 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies
     -PropertyType DWORD `
     -Value 0x00000001 `
     -Force
+
+# *********************************** *
+# * Turn off the search bar           *
+# *********************************** *
+New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
+    -Name "SearchboxTaskbar" `
+    -PropertyType DWORD `
+    -Value 0x00000000 `
+    -Force
+
+# *********************************** *
+# * Turn off task view button         *
+# *********************************** *
+New-Item -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultitaskingView" `
+    -Force
+
+New-Item -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultitaskingView\AllUpView" `
+    -Force
+
+New-ItemProperty -Path -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\MultitaskingView\AllUpView" `
+    -Name "Enabled" `
+    -PropertyType DWORD `
+    -Value 0x00000000 `
+    -Force
+
+# *********************************** *
+# * Hide the Cortana button           *
+# *********************************** *
+Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
+    -Name "CortanaEnabled" `
+    -PropertyType DWORD `
+    -Value 0x00000000 `
+    -Force
+
+# *********************************** *
+# * Remove default pinned tasks       *
+# *********************************** *
+Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" `
+    -Recurse
+    -Force

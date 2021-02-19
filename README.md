@@ -120,6 +120,7 @@ function libvirt_default_pool() {
     --add-boot-drivers generated/virtio-2k19/virtio/viostor \
     --add-drivers generated/virtio-2k19 \
     --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
     --add-drivers win-2k19-server-standard/extra \
     downloaded/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso \
     $(libvirt_default_pool)/win-2k19-Unattended-Virtio.iso \
@@ -133,6 +134,7 @@ function libvirt_default_pool() {
     --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
     --add-boot-drivers generated/virtio-w10/virtio/viostor \
     --add-drivers generated/virtio-w10 \
+    --add-drivers win-common/extra \
     --add-drivers win-10/extra \
     downloaded/Win10_20H2_v2_English_x64.iso \
     $(libvirt_default_pool)/win-10-unattended.iso \

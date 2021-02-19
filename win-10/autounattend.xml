@@ -207,6 +207,37 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
+                <!-- Run the virtio-win installer to finish up driver installation -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\virtio-drivers.ps1</CommandLine>
+                    <Description>Install QEMU guest agent</Description>
+                    <Order>50</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Enable misc firewall rules -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\firewall-misc.ps1</CommandLine>
+                    <Description>Miscellaneous Firewall Setup</Description>
+                    <Order>60</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Setup Windows Remoting over HTTP -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\winrm-setup.ps1</CommandLine>
+                    <Description>Enable Windows Remoting over HTTPS</Description>
+                    <Order>70</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Setup Windows Remoting over HTTP -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ssh.ps1</CommandLine>
+                    <Description>Enable SSH</Description>
+                    <Order>80</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
 
                 <!-- Log off after all setup is complete -->
                 <SynchronousCommand wcm:action="add">
