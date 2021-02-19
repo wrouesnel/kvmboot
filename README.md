@@ -111,6 +111,8 @@ function libvirt_default_pool() {
 
 # Repacking a Windows ISO for installation
 
+## Windows Server
+
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19/virtio 2k19
 ./prepare-windows-iso \
@@ -126,11 +128,15 @@ function libvirt_default_pool() {
 
 ## Windows 10 User Machine
 ```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-drivers win-10-no-libvirt/extra \
+    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-drivers generated/virtio-w10 \
+    --add-drivers win-10/extra \
     downloaded/Win10_20H2_v2_English_x64.iso \
-    win10-unattended.iso \
-    win-10-no-libvirt/autounattend.xml
+    $(libvirt_default_pool)/win-10-unattended.iso \
+    win-10/autounattend.xml
 ```
 
 Then launch to install the base image:

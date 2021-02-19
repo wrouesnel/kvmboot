@@ -23,17 +23,20 @@
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <UserData>
+                <!-- Generic Product Key for Win 10 Pro -->
+                <ProductKey>
+                    <Key>VK7JG-NPHTM-C97JM-9MPGT-3V66T</Key>
+                </ProductKey>
                 <AcceptEula>true</AcceptEula>
             </UserData>
             <ImageInstall>
                 <OSImage>
-                    <!--<InstallFrom>
+                    <InstallFrom>
                         <MetaData wcm:action="add">
                             <Key>/IMAGE/NAME</Key>
-                            <Value>Windows Server 2019 SERVERSTANDARD</Value>
+                            <Value>Windows 10 Pro</Value>
                         </MetaData>
                     </InstallFrom>
-                    -->
                     <InstallTo>
                         <DiskID>0</DiskID>
                         <PartitionID>3</PartitionID>
@@ -83,43 +86,42 @@
         </component>
     </settings>
     <settings pass="offlineServicing">
-<!--        <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+       <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>
                 <PathAndCredentials wcm:keyValue="1" wcm:action="add">
-                    <Path>X:\Drivers\Balloon</Path>
+                    <Path>X:\Drivers\virtio\Balloon</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="2" wcm:action="add">
-                    <Path>X:\Drivers\NetKVM</Path>
+                    <Path>X:\Drivers\virtio\NetKVM</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="3" wcm:action="add">
-                    <Path>X:\Drivers\pvpanic</Path>
+                    <Path>X:\Drivers\virtio\pvpanic</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="4" wcm:action="add">
-                    <Path>X:\Drivers\qemufwcfg</Path>
+                    <Path>X:\Drivers\virtio\qemufwcfg</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="5" wcm:action="add">
-                    <Path>X:\Drivers\qxldod</Path>
+                    <Path>X:\Drivers\virtio\qxldod</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="6" wcm:action="add">
-                    <Path>X:\Drivers\vioinput</Path>
+                    <Path>X:\Drivers\virtio\vioinput</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="7" wcm:action="add">
-                    <Path>X:\Drivers\viorng</Path>
+                    <Path>X:\Drivers\virtio\viorng</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="8" wcm:action="add">
-                    <Path>X:\Drivers\vioscsi</Path>
+                    <Path>X:\Drivers\virtio\vioscsi</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="9" wcm:action="add">
-                    <Path>X:\Drivers\vioserial</Path>
+                    <Path>X:\Drivers\virtio\vioserial</Path>
                 </PathAndCredentials>
                 <PathAndCredentials wcm:keyValue="10" wcm:action="add">
-                    <Path>X:\Drivers\viostor</Path>
+                    <Path>X:\Drivers\virtio\viostor</Path>
                 </PathAndCredentials>
             </DriverPaths>
         </component>
--->
     </settings>
     <settings pass="specialize">
         <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
