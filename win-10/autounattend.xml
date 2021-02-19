@@ -22,27 +22,6 @@
         <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <UserData>
-                <!-- Generic Product Key for Win 10 Pro -->
-                <ProductKey>
-                    <Key>VK7JG-NPHTM-C97JM-9MPGT-3V66T</Key>
-                </ProductKey>
-                <AcceptEula>true</AcceptEula>
-            </UserData>
-            <ImageInstall>
-                <OSImage>
-                    <InstallFrom>
-                        <MetaData wcm:action="add">
-                            <Key>/IMAGE/NAME</Key>
-                            <Value>Windows 10 Pro</Value>
-                        </MetaData>
-                    </InstallFrom>
-                    <InstallTo>
-                        <DiskID>0</DiskID>
-                        <PartitionID>3</PartitionID>
-                    </InstallTo>
-                </OSImage>
-            </ImageInstall>
             <DiskConfiguration>
                 <WillShowUI>OnError</WillShowUI>
                 <Disk wcm:action="add">
@@ -83,6 +62,27 @@
                     <WillWipeDisk>true</WillWipeDisk>
                 </Disk>
             </DiskConfiguration>
+            <UserData>
+                <!-- Generic Product Key for Win 10 Pro -->
+                <ProductKey>
+                    <Key>VK7JG-NPHTM-C97JM-9MPGT-3V66T</Key>
+                </ProductKey>
+                <AcceptEula>true</AcceptEula>
+            </UserData>
+            <ImageInstall>
+                <OSImage>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/NAME</Key>
+                            <Value>Windows 10 Pro</Value>
+                        </MetaData>
+                    </InstallFrom>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                </OSImage>
+            </ImageInstall>
         </component>
     </settings>
     <settings pass="offlineServicing">
@@ -206,6 +206,4 @@
             </FirstLogonCommands>
         </component>
     </settings>
-    <cpi:offlineImage cpi:source="wim:c:/users/user/documents/windowsserver2019/install.wim#Windows Server 2019 SERVERSTANDARD"
-        xmlns:cpi="urn:schemas-microsoft-com:cpi" />
 </unattend>
