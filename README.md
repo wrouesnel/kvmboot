@@ -128,6 +128,18 @@ function libvirt_default_pool() {
     win-2k19-server-standard/autounattend.xml
 ```
 
+Then launch to install the base image:
+
+```bash
+./launch-cloud-image --efi --windows --installer win-2k19-Unattended-Virtio.iso Win2k19-Base
+```
+
+Then spawn a cloud image to test with:
+
+```bash
+./launch-cloud-image --efi --windows lci.Win2k19-Base.root.qcow2 t1
+```
+
 ## Windows 10 Image
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
@@ -142,6 +154,18 @@ function libvirt_default_pool() {
     downloaded/Win10_20H2_v2_English_x64.iso \
     $(libvirt_default_pool)/win-10-unattended-virtio-image.iso \
     win-10-image/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./launch-cloud-image --efi --windows --installer win-10-unattended-virtio-image.iso win10-base
+```
+
+Then spawn a cloud image to test with:
+
+```bash
+./launch-cloud-image --efi --windows lci.win10-base.root.qcow2 t1
 ```
 
 ## Windows 10 User Machine
@@ -162,23 +186,16 @@ provisions once the user sets up an account.
     win-10-user/autounattend.xml
 ```
 
-Then launch to install the base image:
-
-```bash
-./launch-cloud-image --efi --windows --installer win-2k19-Unattended-Virtio.iso Win2k19-Base
-```
-
-Then spawn a cloud image to test with:
-
-```bash
-./launch-cloud-image --efi --windows lci.Win2k19-Base.root.qcow2 t1
-```
-
 The image that comes up should be able to be SSH'd into Powershell using your default SSH
 key. The user will have your name but be administrator.
 
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
+
+# On the handling of optional Windows components
+
+For the user without internet access, and without a WSUS/SCCM server, it is
+apparently almost impossible to handle Windows components
 
 # References
 
