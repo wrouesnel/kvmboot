@@ -165,6 +165,23 @@
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserAccounts>
+                <AdministratorPassword>
+                    <Value>hunter2</Value>
+                    <PlainText>true</PlainText>
+                </AdministratorPassword>
+            </UserAccounts>
+            <AutoLogon>
+                <Username>Administrator</Username>
+                <Password>
+                    <Value>hunter2</Value>
+                    <PlainText>true</PlainText>
+                </Password>
+                <Enabled>true</Enabled>
+                <!-- Need to login once to let final setup complete.
+                Commands below log out once finished.-->
+                <LogonCount>1</LogonCount>
+            </AutoLogon>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
@@ -173,8 +190,8 @@
                 <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
                 <NetworkLocation>Work</NetworkLocation>
                 <ProtectYourPC>1</ProtectYourPC>
-                <!-- <SkipMachineOOBE>true</SkipMachineOOBE>
-                <SkipUserOOBE>true</SkipUserOOBE> -->
+                <SkipMachineOOBE>true</SkipMachineOOBE>
+                <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
             <FirstLogonCommands>
                 <!-- Disable the Network Discovery Prompt -->
@@ -239,13 +256,21 @@
                     <RequiresUserInput>true</RequiresUserInput>
                 </SynchronousCommand>
 
-                <!-- Log off after all setup is complete -->
+                <!-- Install Cloudbase-Init and Sysprep -->
                 <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\cloudbaseinit.ps1</CommandLine>
+                    <Description>Install cloudbase-init and sysprep</Description>
+                    <Order>90</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
+                <!-- Log off after all setup is complete -->
+                <!-- <SynchronousCommand wcm:action="add">
                     <CommandLine>cmd.exe /c logoff</CommandLine>
                     <Description>Logoff after initial provisioning</Description>
                     <Order>100</Order>
                     <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                </SynchronousCommand> -->
             </FirstLogonCommands>
         </component>
     </settings>

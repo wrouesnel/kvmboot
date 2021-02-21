@@ -121,13 +121,34 @@ function libvirt_default_pool() {
     --add-drivers generated/virtio-2k19 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
     --add-drivers win-2k19-server-standard/extra \
     downloaded/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso \
     $(libvirt_default_pool)/win-2k19-Unattended-Virtio.iso \
     win-2k19-server-standard/autounattend.xml
 ```
 
+## Windows 10 Image
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-drivers generated/virtio-w10 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-10-image/extra \
+    downloaded/Win10_20H2_v2_English_x64.iso \
+    $(libvirt_default_pool)/win-10-unattended-virtio-image.iso \
+    win-10-image/autounattend.xml
+```
+
 ## Windows 10 User Machine
+
+This version skips the cloudbase-init step, and leaves you with an image which
+provisions once the user sets up an account.
+
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
@@ -135,10 +156,10 @@ function libvirt_default_pool() {
     --add-boot-drivers generated/virtio-w10/virtio/viostor \
     --add-drivers generated/virtio-w10 \
     --add-drivers win-common/extra \
-    --add-drivers win-10/extra \
+    --add-drivers win-10-user/extra \
     downloaded/Win10_20H2_v2_English_x64.iso \
-    $(libvirt_default_pool)/win-10-unattended.iso \
-    win-10/autounattend.xml
+    $(libvirt_default_pool)/win-10-unattended-virtio-user.iso \
+    win-10-user/autounattend.xml
 ```
 
 Then launch to install the base image:
