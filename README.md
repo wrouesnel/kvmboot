@@ -195,7 +195,16 @@ This can be done by inserting a file into C:\ProgramData\ssh\administrators_auth
 # On the handling of optional Windows components
 
 For the user without internet access, and without a WSUS/SCCM server, it is
-apparently almost impossible to handle Windows components
+apparently almost impossible to handle optional Windows components. The only
+practical solution is to install ALL of them on a sample Windows image, and use
+that as the source for the rest of them:
+
+```powershell
+Get-WindowsOptionalFeature -Online | Select-Object FeatureName | ForEach-Object {
+Enable-WindowsOptionalFeature -Online -FeatureName $_.FeatureName -All }  
+```
+
+Then copy the disk image (or just `C:\Windows`) to your offline environment.
 
 # References
 

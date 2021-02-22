@@ -564,6 +564,9 @@ else
   # Normal case - do SSH setup.
   vm_dns="${vm_name}.default.libvirt"
 
+  # Write the machine hostname to stdout.
+  echo "${vm_dns}" : "$default_user" : "$default_password"
+
   # Wait for the machine to boot to SSH completion
   while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
     sleep 0.5
@@ -598,7 +601,4 @@ else
 
   # TODO: Create an ansible-like inventory file entry for the machine.
   # The idea is you just do cat *.inventory > inventory to build something to work with.
-
-  # Write the machine hostname to stdout.
-  echo "${vm_dns}" : "$default_user" : "$default_password"
 fi
