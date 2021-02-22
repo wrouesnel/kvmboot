@@ -253,7 +253,7 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies
 # * Turn off the search bar           *
 # *********************************** *
 New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
-    -Name "SearchboxTaskbar" `
+    -Name "SearchboxTaskbarMode" `
     -PropertyType DWORD `
     -Value 0x00000000 `
     -Force
