@@ -35,7 +35,11 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <RunSynchronous>
                 <RunSynchronousCommand wcm:action="add">
-                    <Order>1</Order>
+                    <Order>10</Order>
+                    <Path>net user Administrator /active:yes</Path>
+                </RunSynchronousCommand>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>20</Order>
                     <Path>cmd.exe /c ""C:\Program Files\Cloudbase Solutions\Cloudbase-Init\Python\Scripts\cloudbase-init.exe" --config-file "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\cloudbase-init-unattend.conf" &amp;&amp; exit 1 || exit 2"</Path>
                     <Description>Run Cloudbase-Init to set the hostname</Description>
                     <WillReboot>OnRequest</WillReboot>
