@@ -168,6 +168,34 @@ Then spawn a cloud image to test with:
 ./launch-cloud-image --efi --windows lci.win10-base.root.qcow2 t1
 ```
 
+## Windows 10 Updated Image
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-drivers generated/virtio-w10 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-10-image-updated/extra \
+    downloaded/Win10_20H2_v2_English_x64.iso \
+    $(libvirt_default_pool)/win-10-unattended-virtio-image-updated.iso \
+    win-10-image-updated/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./launch-cloud-image --efi --windows --installer win-10-unattended-virtio-image-updated.iso win10-base
+```
+
+Then spawn a cloud image to test with:
+
+```bash
+./launch-cloud-image --efi --windows lci.win10-base.root.qcow2 t1
+```
+
 ## Windows 10 User Machine
 
 This version skips the cloudbase-init step, and leaves you with an image which
