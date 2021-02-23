@@ -273,6 +273,12 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
     -Value 0x00000000 `
     -Force
 
+Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" `
+    -Name "ShowTaskViewButton" `
+    -PropertyType DWORD `
+    -Value 0x00000000 `
+    -Force
+
 # *********************************** *
 # * Hide the Cortana button           *
 # *********************************** *
