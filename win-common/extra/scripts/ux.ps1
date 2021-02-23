@@ -275,7 +275,7 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
 
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" `
     -Name "ShowTaskViewButton" `
-    -Type DWORD `
+    -PropertyType DWORD `
     -Value 0x00000000 `
     -Force
 
@@ -284,7 +284,7 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer
 # *********************************** *
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
     -Name "CortanaEnabled" `
-    -Type DWORD `
+    -PropertyType DWORD `
     -Value 0x00000000 `
     -Force
 
