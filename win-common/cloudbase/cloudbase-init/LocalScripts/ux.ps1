@@ -275,7 +275,7 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
 
 Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" `
     -Name "ShowTaskViewButton" `
-    -PropertyType DWORD `
+    -Type DWORD `
     -Value 0x00000000 `
     -Force
 
@@ -284,7 +284,7 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer
 # *********************************** *
 Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" `
     -Name "CortanaEnabled" `
-    -PropertyType DWORD `
+    -Type DWORD `
     -Value 0x00000000 `
     -Force
 
@@ -292,5 +292,15 @@ Set-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Search" 
 # * Remove default pinned tasks       *
 # *********************************** *
 Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband" `
-    -Recurse
+    -Recurse `
+    -Force
+
+# *********************************** *
+# * Disable the default browser prompt*
+# *********************************** *
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" `
+    -Name "DisallowDefaultBrowserPrompt" `
+    -PropertyType DWORD `
+    -Value 0x00000001
     -Force
