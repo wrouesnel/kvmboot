@@ -76,6 +76,7 @@ $0 [image src name] [VM name]
   --help          Display this help text.
 
 EOF
+      exit 0
       ;;
     *)
       break
