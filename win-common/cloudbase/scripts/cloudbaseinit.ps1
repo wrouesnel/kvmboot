@@ -27,6 +27,10 @@ Copy-Item "C:\Drivers\cloudbase-init\sshpublickeyswin19k.py" `
 Copy-Item "C:\Drivers\cloudbase-init\modifiedconfigdrive.py" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\metadata\services"
 
+# Copy the autologin generator
+Copy-Item "C:\Drivers\cloudbase-init\outputautologinfragment.py" `
+    -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\plugins\common"
+
 # Copy LocalScripts
 Copy-Item "C:\Drivers\cloudbase-init\LocalScripts\*" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\LocalScripts\"

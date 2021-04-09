@@ -26,12 +26,19 @@
                     <Description>Configure Windows UX</Description>
                     <RequiresUserInput>false</RequiresUserInput>
                 </SynchronousCommand>
+                
                 <!-- Workaround for hostname setting: https://ask.cloudbase.it/question/1036/windows-10-hostname-not-being-set/ -->
                 <SynchronousCommand wcm:action="add">
                     <Order>100</Order>
                     <CommandLine>cmd.exe /c ""C:\Program Files\Cloudbase Solutions\Cloudbase-Init\Python\Scripts\cloudbase-init.exe" --config-file "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\cloudbase-init-unattend.conf" &amp;&amp; exit 1 || exit 2"</CommandLine>
                     <Description>Run Cloudbase-Init to set the hostname</Description>
-                    <WillReboot>OnRequest</WillReboot>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+
+                <SynchronousCommand wcm:action="add">
+                    <Order>110</Order>
+                    <CommandLine>cmd.exe /c "shutdown /r /t 0"</CommandLine>
+                    <Description>Run Cloudbase-Init to set the hostname</Description>
                     <RequiresUserInput>false</RequiresUserInput>
                 </SynchronousCommand>
             </FirstLogonCommands>
