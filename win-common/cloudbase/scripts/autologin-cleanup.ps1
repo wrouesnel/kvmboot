@@ -8,3 +8,6 @@ Remove-ItemProperty -Path $RegistryPath -Name 'DefaultUsername' -Force
 Remove-ItemProperty -Path $RegistryPath -Name 'DefaultPassword' -Force
 Remove-ItemProperty -Path $RegistryPath -Name 'AutoLogonCount' -Force
 
+Remove-ItemProperty -Path $RegistryPath -Name 'ForceAutoLogon' -Force
+
+Remove-Item -Path $RegistryPath -Name 'AutoLogonChecked' -Force
