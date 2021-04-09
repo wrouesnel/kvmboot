@@ -19,6 +19,14 @@
                 <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
             <FirstLogonCommands>
+                <!-- Disable and delete the autologin script which makes this work -->
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\autologin-cleanup.ps1</CommandLine>
+                    <Description>Clean Up Autologin Settings</Description>
+                    <Order>10</Order>
+                    <RequiresUserInput>true</RequiresUserInput>
+                </SynchronousCommand>
+
                 <!-- Create a less annoying default shell -->
                 <SynchronousCommand wcm:action="add">
                     <Order>45</Order>

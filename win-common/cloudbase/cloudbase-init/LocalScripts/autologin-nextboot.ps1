@@ -4,20 +4,18 @@
 # set the computer host name.
 
 # All this is necessary because there's no way in Windows 10 to prevent OOBE
-# from resetting the hostname.
+# from resetting the hostname. And none of the autologon paramters in unattend.xml
+# work properly.
+$fragXml = [xml](Get-Content "C:\Windows\Panther\autologin.xml")
 
-$unattend = [xml](Get-Content "C:\Windows\Panther\unattend.xml")
+$Username = $fragXml.AutoLogon.Username
+$Password = $fragXml.AutoLogon.Password.Value
 
-$oobe = $unattend.unattend.settings | Where-Object { $_.pass -eq "oobeSystem" }
+$RegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 
-$shellSetup = $oobe.component | Where-Object { $_.name -eq "Microsoft-Windows-Shell-Setup" }
-
-$fragTxt = Get-Content "C:\Windows\Panther\autologin.xml"
-$nsTxt = "<dummy xmlns=`"$($unattend.unattend.NamespaceURI.ToString())`">$fragTxt</dummy>"
-$fragXml = $shellSetup.OwnerDocument.ImportNode(([xml]$nsTxt).dummy.AutoLogon, $true)
-
-$shellSetup.AppendChild($fragXml)
-
-$unattend.Save("C:\Windows\Panther\unattend.xml")
-
+Set-ItemProperty $RegistryPath 'AutoAdminLogon' -Value "1" -Type String 
+Set-ItemProperty $RegistryPath 'DefaultUsername' -Value "$Username" -type String 
+Set-ItemProperty $RegistryPath 'DefaultPassword' -Value "$Password" -type String
+Set-ItemProperty $RegistryPath 'AutoLogonCount' -Value "1" -type String
+ 
 Remove-Item -Path "C:\Windows\Panther\autologin.xml" -Force
