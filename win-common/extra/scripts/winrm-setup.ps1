@@ -18,8 +18,10 @@ ElseIf ((Get-Service "WinRM").Status -ne "Running")
 
 }
 
+# Note: For no discernible reason, "Set-Service" will completely failed to get
+# this to start promptly, so we force the issue with sc.exe here.
 Write-Verbose "Set WinRM service to Automatic startup"
-Set-Service -Name "WinRM" -StartupType Automatic
+sc.exe config "WinRM" start=auto
 
 # WinRM should be running; check that we have a PS session config.
 If (!(Get-PSSessionConfiguration -Verbose:$false) -or (!(Get-ChildItem WSMan:\localhost\Listener)))
