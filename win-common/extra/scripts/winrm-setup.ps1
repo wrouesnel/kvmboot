@@ -18,6 +18,9 @@ ElseIf ((Get-Service "WinRM").Status -ne "Running")
 
 }
 
+Write-Verbose "Set WinRM service to Automatic startup"
+Set-Service -Name "WinRM" -StartupType Automatic
+
 # WinRM should be running; check that we have a PS session config.
 If (!(Get-PSSessionConfiguration -Verbose:$false) -or (!(Get-ChildItem WSMan:\localhost\Listener)))
 {
