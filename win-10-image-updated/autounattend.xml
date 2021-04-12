@@ -133,14 +133,17 @@
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <FirewallGroups>
+                <!-- Remote Desktop -->
                 <FirewallGroup wcm:action="add" wcm:keyValue="RemoteDesktop">
                     <Active>true</Active>
-                    <Group>Remote Desktop</Group>
                     <Profile>all</Profile>
+                    <Group>@FirewallAPI.dll,-28752</Group>
                 </FirewallGroup>
+
+                <!-- Network Discovery -->
                 <FirewallGroup wcm:action="add" wcm:keyValue="NetworkDiscovery">
                     <Active>false</Active>
-                    <Group>Network Discovery</Group>
+                    <Group>@FirewallAPI.dll,-32752</Group>
                     <Profile>all</Profile>
                 </FirewallGroup>
             </FirewallGroups>
