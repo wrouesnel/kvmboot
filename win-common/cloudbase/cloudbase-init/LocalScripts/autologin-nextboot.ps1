@@ -27,5 +27,7 @@ New-ItemProperty $RegistryPath `
     -Force
 
 Remove-Item -Path $RegistryPath -Name 'AutoLogonChecked' -Force
+Remove-Item -Path $RegistryPath -Name 'LastUsedUsername' -Force
+Remove-Item -Path $RegistryPath -Name 'AutoLogonSID' -Force
 
 Remove-Item -Path "C:\Windows\Panther\autologin.xml" -Force

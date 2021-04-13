@@ -34,4 +34,5 @@ class EnsureLocalAdminIsActive(base.BasePlugin):
 
     def execute(self, service, shared_data):
         subprocess.call(["net", "user", "Administrator", "/active:yes"])
+        subprocess.call(["net", "user", "Administrator", "/expires:never"])
         return base.PLUGIN_EXECUTION_DONE, False
