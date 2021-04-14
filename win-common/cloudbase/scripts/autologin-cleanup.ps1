@@ -10,4 +10,7 @@ Remove-ItemProperty -Path $RegistryPath -Name 'AutoLogonCount' -Force
 
 Remove-ItemProperty -Path $RegistryPath -Name 'ForceAutoLogon' -Force
 
-Remove-Item -Path $RegistryPath -Name 'AutoLogonChecked' -Force
+Remove-ItemProperty -Path $RegistryPath -Name 'LastUsedUsername' -Force
+Remove-ItemProperty -Path $RegistryPath -Name 'AutoLogonSID' -Force
+Remove-Item -Path "$RegistryPath\AutoLogonChecked" -Force
+
