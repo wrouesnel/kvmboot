@@ -4,7 +4,7 @@
 $RegistryPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 
 Remove-ItemProperty -Path $RegistryPath -Name 'AutoAdminLogon' -Force
-Remove-ItemProperty -Path $RegistryPath -Name 'DefaultUsername' -Force
+Remove-ItemProperty -Path $RegistryPath -Name 'DefaultUserName' -Force
 Remove-ItemProperty -Path $RegistryPath -Name 'DefaultPassword' -Force
 Remove-ItemProperty -Path $RegistryPath -Name 'AutoLogonCount' -Force
 

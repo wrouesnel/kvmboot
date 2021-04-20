@@ -304,3 +304,12 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft
     -PropertyType DWORD `
     -Value 0x00000001
     -Force
+
+# *********************************** *
+# * The creepy Hi animation           *
+# *********************************** *
+Set-ItemProperty -Path "HKLM:\SSOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+    -Name "EnableFirstLogonAnimation" `
+    -PropertyType DWORD `
+    -Value 0x00000000
+    -Force

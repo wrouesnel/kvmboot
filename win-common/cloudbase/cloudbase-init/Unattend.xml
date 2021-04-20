@@ -7,62 +7,39 @@
             <PersistAllDeviceInstalls>true</PersistAllDeviceInstalls>
         </component>
     </settings>
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+            <ComputerName>PROVISIONING</ComputerName>
+            <CopyProfile>true</CopyProfile>
+        </component>
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <RunSynchronous>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>100</Order>
+                    <Path>cmd.exe /c ""C:\Program Files\Cloudbase Solutions\Cloudbase-Init\Python\Scripts\cloudbase-init.exe" --config-file "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\cloudbase-init-unattend.conf" &amp;&amp; exit 1 || exit 2"</Path>
+                    <Description>Run Cloudbase-Init to set the hostname</Description>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+        </component>
+    </settings>
+    <!-- oobeSystem -->
     <settings pass="oobeSystem">
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <UnattendEnableRetailDemo>false</UnattendEnableRetailDemo>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
                 <NetworkLocation>Work</NetworkLocation>
                 <ProtectYourPC>1</ProtectYourPC>
                 <SkipMachineOOBE>true</SkipMachineOOBE>
                 <SkipUserOOBE>true</SkipUserOOBE>
             </OOBE>
-            <FirstLogonCommands>
-                <!-- Disable and delete the autologin script which makes this work -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\autologin-cleanup.ps1</CommandLine>
-                    <Description>Clean Up Autologin Settings</Description>
-                    <Order>10</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <!-- Create a less annoying default shell -->
-                <SynchronousCommand wcm:action="add">
-                    <Order>45</Order>
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</CommandLine>
-                    <Description>Configure Windows UX</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
-                </SynchronousCommand>
-
-                <!-- Workaround for hostname setting: https://ask.cloudbase.it/question/1036/windows-10-hostname-not-being-set/ -->
-                <SynchronousCommand wcm:action="add">
-                    <Order>100</Order>
-                    <CommandLine>cmd.exe /c ""C:\Program Files\Cloudbase Solutions\Cloudbase-Init\Python\Scripts\cloudbase-init.exe" --config-file "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\cloudbase-init-unattend.conf" &amp;&amp; exit 1 || exit 2"</CommandLine>
-                    <Description>Run Cloudbase-Init to set the hostname</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
-                </SynchronousCommand>
-
-                <SynchronousCommand wcm:action="add">
-                    <Order>110</Order>
-                    <CommandLine>cmd.exe /c "shutdown /r /t 0"</CommandLine>
-                    <Description>Run Cloudbase-Init to set the hostname</Description>
-                    <RequiresUserInput>false</RequiresUserInput>
-                </SynchronousCommand>
-            </FirstLogonCommands>
-        </component>
-    </settings>
-    <settings pass="specialize">
-        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
-            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
-            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <RunSynchronous>
-                <RunSynchronousCommand wcm:action="add">
-                    <Order>10</Order>
-                    <Path>net user Administrator /active:no</Path>
-                    <Description>Disable the local Administrator account</Description>
-                </RunSynchronousCommand>
-            </RunSynchronous>
         </component>
     </settings>
 </unattend>
