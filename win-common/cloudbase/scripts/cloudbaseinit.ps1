@@ -34,6 +34,9 @@ Copy-Item "C:\Drivers\cloudbase-init\outputautologinfragment.py" `
 Copy-Item "C:\Drivers\cloudbase-init\ensurelocaladminisactive.py" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\plugins\windows"
 
+Copy-Item "C:\Drivers\cloudbase-init\updatecomputernameinunattend.py" `
+    -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\Python\Lib\site-packages\cloudbaseinit\plugins\windows"
+
 # Copy LocalScripts
 Copy-Item "C:\Drivers\cloudbase-init\LocalScripts\*" `
     -Destination "$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\LocalScripts\"
@@ -43,4 +46,4 @@ Copy-Item "C:\Drivers\cloudbase-init\LocalScripts\*" `
 # Note: I have no idea why sysprep won't run when we use Start-Process like you'd expect to.
 # So here we are doing Invoke-Expression, and not touching this very long line which works.
 Write-Verbose "Sysprep and shutdown"
-Invoke-Expression "C:\Windows\System32\sysprep\sysprep.exe /copyprofile /oobe /generalize /shutdown /unattend:""$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"""
+Invoke-Expression "C:\Windows\System32\sysprep\sysprep.exe /oobe /generalize /shutdown /unattend:""$env:PROGRAMFILES\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"""

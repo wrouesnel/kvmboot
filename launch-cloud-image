@@ -443,6 +443,7 @@ cat << EOF > "$xml_def"
   <memory unit='B'>$ram_bytes</memory>
   <currentMemory unit='B'>$ram_bytes</currentMemory>
   <vcpu placement='static'>2</vcpu>
+  <iothreads>1</iothreads>
   <os>
     <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
     $nvram1
@@ -469,13 +470,13 @@ cat << EOF > "$xml_def"
   <devices>
     <emulator>/usr/bin/qemu-system-x86_64</emulator>
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2'/>
+      <driver name='qemu' type='qcow2' io='native' cache='none' discard='unmap' iothread='1'/>
       <source file='${root_disk_path}'/>
       <target dev='vda' bus='virtio'/>
       ${root_boot_order_xml}
     </disk>
     <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw'/>
+      <driver name='qemu' type='raw' io='native' cache='none'/>
       <source file='${iso_file_path}'/>
       <backingStore/>
       <target dev='sda' bus='sata'/>
@@ -518,26 +519,7 @@ cat << EOF > "$xml_def"
     </rng>
 
     $video_xml
-
-    <!--
-    <filesystem type="mount" accessmode="passthrough">
-        <driver type="path" wrpolicy="immediate"/>
-        <source dir="${HOME}/shared/${image_name}"/>
-        <target dir="user_home"/>
-    </filesystem>
-    <filesystem type="mount" accessmode="passthrough">
-        <driver type="path" wrpolicy="immediate"/>
-        <source dir="${HOME}/.gnupg"/>
-        <target dir="gpg_home"/>
-    </filesystem>
-    <filesystem type="mount" accessmode="passthrough">
-        <driver type="path" wrpolicy="immediate"/>
-        <source dir="${HOME}/.ssh"/>
-        <target dir="ssh_home"/>
-    </filesystem>
-    -->
   </devices>
-  <!--<seclabel type='dynamic' model='selinux' relabel='yes'/>-->
 </domain>
 EOF
 

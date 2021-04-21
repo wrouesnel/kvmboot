@@ -103,6 +103,16 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentD
     -Value 0x00000000 `
     -Force
 
+# *****************************************
+# * Suggest ways to finish setting up *
+# *****************************************
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\UserProfileEngagement" `
+    -Name "ScoobeSystemSettingEnabled" `
+    -PropertyType DWORD `
+    -Value 0x00000000 `
+    -Force
+
 # ****************************************
 # * Display seconds on the taskbar clock *
 # ****************************************
@@ -306,9 +316,19 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft
     -Force
 
 # *********************************** *
+# * Disable Edge prelaunch            *
+# *********************************** *
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
+    -Name "AllowPrelaunch" `
+    -PropertyType DWORD `
+    -Value 0x00000000
+    -Force
+
+# *********************************** *
 # * The creepy Hi animation           *
 # *********************************** *
-Set-ItemProperty -Path "HKLM:\SSOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
     -Name "EnableFirstLogonAnimation" `
     -PropertyType DWORD `
     -Value 0x00000000
