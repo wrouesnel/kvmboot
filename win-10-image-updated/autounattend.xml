@@ -161,6 +161,13 @@
                     <Description>Set Execution Policy 32 Bit</Description>
                 </RunSynchronousCommand>
 
+                <!-- Virtual Machine preferred options -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>44</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\vm.ps1</Path>
+                    <Description>Configure Windows System-Wide Settings</Description>
+                </RunSynchronousCommand>
+
                 <!-- Create a less annoying default shell -->
                 <RunSynchronousCommand wcm:action="add">
                     <Order>45</Order>
@@ -201,6 +208,12 @@
                     <Order>85</Order>
                     <Path>cmd.exe /c powershell -File C:\Drivers\scripts\windows-update.ps1</Path>
                     <Description>Windows Update</Description>
+                </RunSynchronousCommand>
+
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>86</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\debloat-win10.ps1</Path>
+                    <Description>Remove Windows 10 Application bloat</Description>
                 </RunSynchronousCommand>
 
                 <!-- Install Cloudbase-Init and Sysprep -->

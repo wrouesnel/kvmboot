@@ -309,6 +309,12 @@ Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Task
 # * Disable the default browser prompt*
 # *********************************** *
 
+New-Item -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge" `
+    -Force
+
+New-Item -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" `
+    -Force
+
 New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" `
     -Name "DisallowDefaultBrowserPrompt" `
     -PropertyType DWORD `
@@ -319,6 +325,12 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft
 # * Disable Edge prelaunch            *
 # *********************************** *
 
+New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge" `
+    -Force
+
+New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
+    -Force
+
 New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
     -Name "AllowPrelaunch" `
     -PropertyType DWORD `
@@ -328,8 +340,17 @@ New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 # *********************************** *
 # * The creepy Hi animation           *
 # *********************************** *
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Policies\System" `
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
     -Name "EnableFirstLogonAnimation" `
+    -PropertyType DWORD `
+    -Value 0x00000000
+    -Force
+
+# *********************************** *
+# * Always show full systray          *
+# *********************************** *
+New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer" `
+    -Name "EnableAutoTray" `
     -PropertyType DWORD `
     -Value 0x00000000
     -Force

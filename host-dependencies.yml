@@ -91,6 +91,7 @@
           - fuseiso
           - udftools
           - jq
+          - numad
         state: latest
 
     - name: Install Windows ISO manipulation dependencies

@@ -413,12 +413,15 @@ if [ $opt_video = 1 ]; then
       <image compression='off'/>
     </graphics>
     <video>
-      <model type="virtio" heads="1" primary="yes"/>
+      <model type="qxl" heads="1" primary="yes"/>
     </video>
 EOF
 fi
 
+features_xml=""
+clock_offset="utc"
 if [ $opt_windows = 1 ]; then
+  clock_offset="localtime"
   read -r -d '' video_xml << EOF
     <graphics type='spice' autoport='yes'>
       <listen type="address" address="127.0.0.1"/>
@@ -427,6 +430,20 @@ if [ $opt_windows = 1 ]; then
     <video>
       <model type="qxl" ram="65536" vram="65536" vgamem="16384" heads="1" primary="yes"/>
     </video>
+EOF
+
+  read -r -d '' features_xml << EOF
+    <hyperv>
+      <relaxed state='on'/>
+      <vapic state='on'/>
+      <spinlocks state='on' retries='8191'/>
+      <vpindex state='on'/>
+      <synic state='on'/>
+      <stimer state='on'/>
+      <reset state='on'/>
+      <vendor_id state='on' value='1234567890ab'/>  <!-- nvidia error code 43 prevention -->
+      <frequencies state='on'/>
+    </hyperv>
 EOF
 fi
 
@@ -442,8 +459,12 @@ cat << EOF > "$xml_def"
   <name>${vm_name}</name>
   <memory unit='B'>$ram_bytes</memory>
   <currentMemory unit='B'>$ram_bytes</currentMemory>
-  <vcpu placement='static'>2</vcpu>
+  <vcpu placement='auto'>2</vcpu>
+  <numatune>
+    <memory mode='strict' placement='auto'/>
+  </numatune>
   <iothreads>1</iothreads>
+  <!-- TODO: cputune from system data -->
   <os>
     <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
     $nvram1
@@ -453,12 +474,15 @@ cat << EOF > "$xml_def"
     <acpi/>
     <apic/>
     <vmport state='off'/>
+    $features_xml
   </features>
   <cpu mode="host-passthrough"/>
-  <clock offset='utc'>
+  <clock offset='$clock_offset'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>
     <timer name='hpet' present='no'/>
+    <timer name='hypervclock' present='yes'/>
+    <timer name='tsc' present='yes' mode='native'/>
   </clock>
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
