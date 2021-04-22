@@ -9,6 +9,10 @@
     virtio_win_iso: "virtio-win.iso"
     cloudbase_init_installer: "CloudbaseInitSetup_Stable_x64.msi"
     win_2k19_iso: "17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"
+    # Software Names
+    procmon_installer: ProcessMonitor.zip
+    firefox_installer: firefox-setup.exe
+    vscode_installer: vscode-setup.exe
   tasks:
     - name: Ensure files dir exists
       file:
@@ -36,6 +40,35 @@
         - get_url:
             url: https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi
             dest: "{{files_dir}}/cloudbase-init/{{cloudbase_init_installer}}"
+
+    # Download some tools to make Windows more palatable
+    - name: Download Process Monitor
+      block:
+        - file:
+            path: "{{files_dir}}"
+            state: directory
+        - get_url:
+            url: https://download.sysinternals.com/files/ProcessMonitor.zip
+            dest: "{{files_dir}}/{{procmon_installer}}"
+
+    - name: Download Firefox Offline
+      block:
+        - file:
+            path: "{{files_dir}}"
+            state: directory
+        - get_url:
+            url: https://download.mozilla.org/?product=firefox-latest-ssl&os=win64&lang=en-US
+            dest: "{{files_dir}}/{{firefox_installer}}"
+
+    - name: Download VS Code Offline
+      block:
+        - file:
+            path: "{{files_dir}}"
+            state: directory
+        - get_url:
+            url: https://code.visualstudio.com/sha/download?build=stable&os=win32-x64
+            dest: "{{files_dir}}/{{vscode_installer}}"
+
 
     - name: Check for Windows ISO files
       block:

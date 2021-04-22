@@ -319,7 +319,7 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft
 # * Disable Edge prelaunch            *
 # *********************************** *
 
-New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
+New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
     -Name "AllowPrelaunch" `
     -PropertyType DWORD `
     -Value 0x00000000
@@ -328,7 +328,7 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 # *********************************** *
 # * The creepy Hi animation           *
 # *********************************** *
-Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Policies\System" `
     -Name "EnableFirstLogonAnimation" `
     -PropertyType DWORD `
     -Value 0x00000000
