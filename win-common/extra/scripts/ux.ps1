@@ -352,6 +352,11 @@ New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 # *********************************** *
 # * The creepy Hi animation           *
 # *********************************** *
+New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" `
+    -Name "EnableFirstLogonAnimation" `
+    -Value 0x00000000 `
+    -Force
+
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
     -Name "EnableFirstLogonAnimation" `
     -Value 0x00000000 `
