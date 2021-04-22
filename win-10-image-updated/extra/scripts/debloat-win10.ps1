@@ -4,145 +4,95 @@
 
 Write-Verbose "Uninstalling default apps"
 $apps = @(
-    # default Windows 10 apps
-
-    "Microsoft.3DBuilder"
-
-    "Microsoft.Appconnector"
-
-    "Microsoft.BingFinance"
-
-    "Microsoft.BingNews"
-
-    "Microsoft.BingSports"
-
-    "Microsoft.BingWeather"
-
-    "Microsoft.FreshPaint"
-
-    "Microsoft.Getstarted"
-
-    "Microsoft.MicrosoftOfficeHub"
-
-    "Microsoft.MicrosoftSolitaireCollection"
-
-    #"Microsoft.MicrosoftStickyNotes"
-
-    "Microsoft.Office.OneNote"
-
-    "Microsoft.OneConnect"
-
-    "Microsoft.People"
-
-    "Microsoft.SkypeApp"
-
-    #"Microsoft.Windows.Photos"
-
-    "Microsoft.WindowsAlarms"
-
-    #"Microsoft.WindowsCalculator"
-
-    "Microsoft.WindowsCamera"
-
-    "Microsoft.WindowsMaps"
-
-    "Microsoft.WindowsPhone"
-
-    "Microsoft.WindowsSoundRecorder"
-
-    "Microsoft.WindowsStore"
-
-    "Microsoft.XboxApp"
-
-    "Microsoft.ZuneMusic"
-
-    "Microsoft.ZuneVideo"
-
-    "microsoft.windowscommunicationsapps"
-
-    "Microsoft.MinecraftUWP"
-
-    # Threshold 2 apps
-
-    "Microsoft.CommsPhone"
-
-    "Microsoft.ConnectivityStore"
-
-    "Microsoft.Messaging"
-
-    "Microsoft.Office.Sway"
-
-    "Microsoft.OneConnect"
-
-    "Microsoft.WindowsFeedbackHub"
-
-    #Redstone apps
-
-    "Microsoft.BingFoodAndDrink"
-
-    "Microsoft.BingTravel"
-
-    "Microsoft.BingHealthAndFitness"
-
-    "Microsoft.WindowsReadingList"
-
-    # non-Microsoft
-
-    "9E2F88E3.Twitter"
-
-    "PandoraMediaInc.29680B314EFC2"
-
-    "Flipboard.Flipboard"
-
-    "ShazamEntertainmentLtd.Shazam"
-
-    "king.com.CandyCrushSaga"
-
-    "king.com.CandyCrushSodaSaga"
-
-    "king.com.*"
-
-    "ClearChannelRadioDigital.iHeartRadio"
-
-    "4DF9E0F8.Netflix"
-
-    "6Wunderkinder.Wunderlist"
-
-    "Drawboard.DrawboardPDF"
-
     "2FE3CB00.PicsArt-PhotoStudio"
-
+    "4DF9E0F8.Netflix"
+    "6Wunderkinder.Wunderlist"
+    "7EE7776C.LinkedInforWindows"
+    "9E2F88E3.Twitter"
+    "C27EB4BA.DropboxOEM"
+    "ClearChannelRadioDigital.iHeartRadio"
     "D52A8D61.FarmVille2CountryEscape"
-
-    "TuneIn.TuneInRadio"
-
-    "GAMELOFTSA.Asphalt8Airborne"
-
-    "TheNewYorkTimes.NYTCrossword"
-
     "DB6EA5DB.CyberLinkMediaSuiteEssentials"
-
-    # Apps which cannot be removed using Remove-AppxPackage
-
-    #"Microsoft.BioEnrollment"
-
-    #"Microsoft.MicrosoftEdge"
-
-    #"Microsoft.Windows.Cortana"
-
-    #"Microsoft.WindowsFeedback"
-
-    #"Microsoft.XboxGameCallableUI"
-
-    #"Microsoft.XboxIdentityProvider"
-
-    #"Windows.ContactSupport"
-
+    "Drawboard.DrawboardPDF"
+    "Flipboard.Flipboard"
+    "GAMELOFTSA.Asphalt8Airborne"
+    "king.com.*"
+    "king.com.CandyCrushSaga"
+    "king.com.CandyCrushSodaSaga"
+    "Microsoft.3DBuilder"
+    "Microsoft.Advertising.Xaml"
+    "Microsoft.Appconnector"
+    "Microsoft.BingFinance"
+    "Microsoft.BingFoodAndDrink"
+    "Microsoft.BingHealthAndFitness"
+    "Microsoft.BingNews"
+    "Microsoft.BingSports"
+    "Microsoft.BingTravel"
+    "Microsoft.BingWeather"
+    "Microsoft.CommsPhone"
+    "Microsoft.ConnectivityStore"
+    "Microsoft.DesktopAppInstaller"
+    "Microsoft.FreshPaint"
+    "Microsoft.Getstarted"
+    "Microsoft.Messaging"
+    "Microsoft.Microsoft3DViewer"
+    "Microsoft.MicrosoftOfficeHub"
+    "Microsoft.MicrosoftSolitaireCollection"
+    "Microsoft.MicrosoftStickyNotes"
+    "Microsoft.MinecraftUWP"
+    "Microsoft.MixedReality.Portal"
+    "Microsoft.Netflix"
+    "Microsoft.NetworkSpeedTest"
+    "Microsoft.Office.Desktop"
+    "Microsoft.OfficeLens"
+    "Microsoft.Office.OneNote"
+    "Microsoft.Office.Sway"
+    "Microsoft.OneConnect"
+    "Microsoft.OneDrive"
+    "Microsoft.People"
+    "Microsoft.Print3D"
+    "Microsoft.SkypeApp"
+    "Microsoft.Wallet"
+    "Microsoft.WindowsAlarms"
+    "Microsoft.WindowsCamera"
+    "Microsoft.Windows.CloudExperienceHost"
+    "microsoft.windowscommunicationsapps"
+    "Microsoft.windowscommunicationsapps"
+    "Microsoft.WindowsFeedbackHub"
+    "Microsoft.WindowsMaps"
+    "Microsoft.Windows.NarratorQuickStart"
+    "Microsoft.Windows.PeopleExperienceHost"
+    "Microsoft.WindowsPhone"
+    "Microsoft.Windows.Photos"
+    "Microsoft.WindowsReadingList"
+    "Microsoft.WindowsSoundRecorder"
+    "Microsoft.WindowsStore"
+    "Microsoft.XboxApp"
+    "Microsoft.XboxGameCallableUI"
+    "Microsoft.XboxGameOverlay"
+    "Microsoft.XboxGamingOverlay"
+    "Microsoft.XboxIdentityProvider"
+    "Microsoft.XboxLive"
+    "Microsoft.XboxSpeechToTextOverlay"
+    "Microsoft.Xbox.TCUI"
+    "Microsoft.YourPhone"
+    "Microsoft.ZuneMusic"
+    "Microsoft.ZuneVideo"
+    "PandoraMediaInc.29680B314EFC2"
+    "ShazamEntertainmentLtd.Shazam"
+    "TheNewYorkTimes.NYTCrossword"
+    "TuneIn.TuneInRadio"
+    "Windows.CBSPreview"
+    "SpotifyAB.SpotifyMusic"
 )
 
 foreach ($app in $apps) {
     echo "Trying to remove $app"
-    Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage
-    Get-AppXProvisionedPackage -Online |
-        where DisplayName -EQ $app | Remove-AppxProvisionedPackage -Online
+    try {
+        Get-AppxPackage -Name $app -AllUsers | Remove-AppxPackage
+        Get-AppXProvisionedPackage -Online |
+            where DisplayName -EQ $app | Remove-AppxProvisionedPackage -Online
+    } catch {
+        echo "Cannot remove $app - continuing"
+    }
 }

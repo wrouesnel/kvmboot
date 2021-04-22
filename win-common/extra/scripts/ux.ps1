@@ -318,7 +318,13 @@ New-Item -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows
 New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" `
     -Name "DisallowDefaultBrowserPrompt" `
     -PropertyType DWORD `
-    -Value 0x00000001
+    -Value 0x00000001 `
+    -Force
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge\Main" `
+    -Name "AllowPrelaunch" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
     -Force
 
 # *********************************** *
@@ -334,7 +340,13 @@ New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
     -Name "AllowPrelaunch" `
     -PropertyType DWORD `
-    -Value 0x00000000
+    -Value 0x00000000 `
+    -Force
+
+New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
+    -Name "DisallowDefaultBrowserPrompt" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
     -Force
 
 # *********************************** *
@@ -342,8 +354,7 @@ New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 # *********************************** *
 Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" `
     -Name "EnableFirstLogonAnimation" `
-    -PropertyType DWORD `
-    -Value 0x00000000
+    -Value 0x00000000 `
     -Force
 
 # *********************************** *
@@ -352,5 +363,21 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlo
 New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer" `
     -Name "EnableAutoTray" `
     -PropertyType DWORD `
-    -Value 0x00000000
+    -Value 0x00000000 `
     -Force
+
+# *********************************** *
+# * Disable Live Tiles                *
+# *********************************** *
+New-Item -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" `
+    -Force
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\PushNotifications" `
+    -Name "NoTileApplicationNotification" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
+    -Force
+
+# *********************************** *
+# * Delete the tile on the start menu *
+# *********************************** *

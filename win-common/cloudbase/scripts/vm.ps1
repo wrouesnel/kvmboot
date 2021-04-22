@@ -15,3 +15,9 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
     -Name "SmartScreenEnabled" `
     -Value "Off" `
     -Force
+
+Copy-Item "C:\Drivers\StartLayout.xml" `
+    -Destination "C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\DefaultLayouts.xml"
+
+Copy-Item "C:\Drivers\StartLayout.xml" `
+    -Destination "C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml"
