@@ -16,5 +16,5 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer
     -Value "Off" `
     -Force
 
-Copy-Item "C:\Drivers\StartLayout.xml" `
+Copy-Item "C:\Drivers\scripts\StartLayout.xml" `
     -Destination "C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml"

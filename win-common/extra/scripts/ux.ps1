@@ -305,9 +305,9 @@ Remove-Item -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Task
     -Recurse `
     -Force
 
-# *********************************** *
-# * Disable the default browser prompt*
-# *********************************** *
+# ************************************************************************ *
+# * Edge Prelaunch, Default Browser Pop and the Use Edge Popup (hopefully) *
+# ************************************************************************ *
 
 New-Item -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Storage\microsoft.microsoftedge_8wekyb3d8bbwe\MicrosoftEdge" `
     -Force
@@ -327,10 +327,6 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Classes\Local Settings\Software\Microsoft
     -Value 0x00000001 `
     -Force
 
-# *********************************** *
-# * Disable Edge prelaunch            *
-# *********************************** *
-
 New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge" `
     -Force
 
@@ -345,6 +341,21 @@ New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
 
 New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\MicrosoftEdge\Main" `
     -Name "DisallowDefaultBrowserPrompt" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
+    -Force
+
+New-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" `
+    -Force
+
+New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent" `
+    -Name "DisableHelpSticker" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
+    -Force
+
+New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Edge" `
+    -Name "HideFirstRunExperience" `
     -PropertyType DWORD `
     -Value 0x00000001 `
     -Force
@@ -383,6 +394,40 @@ New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion
     -Value 0x00000001 `
     -Force
 
+# ************************************************************ *
+# * Disable Windows Consumer features (stop installed Spotify) *
+# ************************************************************ *
+# Hard to know where this one should really go.
+New-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DisableWindowsConsumerFeatures" `
+    -Name "DisableWindowsConsumerFeatures" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
+    -Force
+
 # *********************************** *
-# * Delete the tile on the start menu *
+# * Disable Silent App Installs                *
 # *********************************** *
+
+foreach ($key in @(
+    "ContentDeliveryAllowed"
+    "OemPreInstalledAppsEnabled"
+    "PreInstalledAppsEnabled"
+    "PreInstalledAppsEverEnabled"
+    "SilentInstalledAppsEnabled"
+    "SoftLandingEnabled"
+    "SubscribedContentEnabled"
+)) {
+    Set-ItemProperty `
+        -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" `
+        -Name $key `
+        -Value 0x00000000 `
+        -Force
+}
+
+Remove-Item "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\Subscriptions" `
+    -Recurse `
+    -Force
+
+Remove-Item "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" `
+    -Recurse `
+    -Force
