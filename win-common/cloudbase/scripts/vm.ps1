@@ -24,11 +24,18 @@ Copy-Item "C:\Drivers\scripts\StartLayout.xml" `
     -Destination "C:\Users\Default\AppData\Local\Microsoft\Windows\Shell\LayoutModification.xml"
 
 # Remove OneDrive
-pushd "$env:SystemRoot\SysWOW64"
-.\OneDriveSetup.exe /uninstall
-popd
+Start-Process `
+    -FilePath "$env:SystemRoot\SysWOW64\OneDriveSetup.exe" `
+    -ArgumentList "/uninstall" `
+    -Wait
 
 # Remove Edge
-pushd "`"${env:ProgramFiles(x86)}\Microsoft\Edge\Application\*\Installer`""
-.\setup.exe -uninstall -system-level -verbose-logging -force-uninstall
+pushd "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\*\Installer"
+Start-Process `
+    -FilePath "setup.exe" `
+    -ArgumentList "-uninstall","-system-level","-verbose-logging","-force-uninstall" `
+    -Wait
 popd
+
+# Delete the Edge icon
+Remove-Item "$env:USERPROFILE\Desktop\*.*"
