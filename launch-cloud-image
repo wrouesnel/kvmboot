@@ -30,12 +30,19 @@ function _atexit_handler() {
 
 trap _atexit_handler EXIT
 
+virsh="$(command -v virsh) -q --connect=qemu:///session"
+qemuimg="$(command -v qemu-img)"
+secrettool="$(command -v secret-tool)"
+pwgen="$(command -v pwgen)"
+
 opt_efi=0
 opt_video=0
 opt_extra_disks=
 opt_ram=4G
 opt_windows=0
 opt_installer=0
+opt_user="$(id -u -n)"
+opt_password="$($pwgen 20)"
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -63,6 +70,14 @@ while [ -n "$1" ] ; do
       # as an ISO instead.
       opt_installer=1
       ;;
+    --user)
+      shift
+      opt_user="$1"
+      ;;
+    --password)
+      shift
+      opt_password="$1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -73,6 +88,8 @@ $0 [image src name] [VM name]
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
   --installer     Makes a blank disk and mounts the requested image as an ISO instead.
+  --user          Username of the new user to create in the image
+  --password      Password of the new user to create in the image
   --help          Display this help text.
 
 EOF
@@ -100,18 +117,12 @@ if [ -z "$image_name" ]; then
   image_name=lci-"$(dd if=/dev/urandom bs=1 count=6 2>/dev/null | base32 -w0 | cut -d'=' -f1 | tr '[:upper:]' '[:lower:]')"
 fi
 
-virsh="$(command -v virsh) -q --connect=qemu:///session"
-qemuimg="$(command -v qemu-img)"
-secrettool="$(command -v secret-tool)"
-pwgen="$(command -v pwgen)"
-
 # Hardcoded defaults
 pool="default"
 root_disk="lci.$image_name.root.qcow2"
 capacity="100G"
-
-default_user="$(id -u -n)"
-default_password=$($pwgen 20)
+default_user="$opt_user"
+default_password="$opt_password"
 
 timezone="$(timedatectl show -p Timezone | cut -d'=' -f2-)"
 
