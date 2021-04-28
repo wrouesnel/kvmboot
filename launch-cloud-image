@@ -43,6 +43,7 @@ opt_windows=0
 opt_installer=0
 opt_user="$(id -u -n)"
 opt_password="$($pwgen 20)"
+opt_isopath=""
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -78,6 +79,10 @@ while [ -n "$1" ] ; do
       shift
       opt_password="$1"
       ;;
+    --iso-path)
+      shift
+      opt_isopath="$1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -109,6 +114,11 @@ shift
 # Best effort image name
 image_name="$1"
 shift
+
+if [ -n "$opt_isopath" ]; then
+  image_src="ISOPATH"
+  image_name="ISOPATH"
+fi
 
 # Convert ram bytes
 ram_bytes=$(echo "$opt_ram" | numfmt --from=iec)
@@ -229,6 +239,12 @@ EOF
         -close \
         ; then
     fatal 1 "Error generating config-drive ISO."
+  fi
+
+  if [ -n "$opt_isopath" ] ; then
+    log "Outputting cloudinit ISO and exiting"
+    cp -f "$isopath" "$opt_isopath"
+    exit 0
   fi
 
   # Upload the ISO to the pool then clean up
