@@ -6,6 +6,9 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <PersistAllDeviceInstalls>true</PersistAllDeviceInstalls>
         </component>
+        <component name="Microsoft-Windows-Security-SPP" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SkipRearm>1</SkipRearm>
+        </component>
     </settings>
     <settings pass="specialize">
         <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
@@ -18,6 +21,14 @@
                     <Description>Run Cloudbase-Init to set the hostname</Description>
                     <!-- <WillReboot>Always</WillReboot> -->
                 </RunSynchronousCommand>
+
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>110</Order>
+                    <Path>cmd.exe /c "net user Administrator /active:no"</Path>
+                    <Description>Ensure the Administrator accont is completely disabled</Description>
+                    <!-- <WillReboot>Always</WillReboot> -->
+                </RunSynchronousCommand>
+                
             </RunSynchronous>
         </component>
 
