@@ -44,12 +44,17 @@ opt_installer=0
 opt_user="$(id -u -n)"
 opt_password="$($pwgen 20)"
 opt_isopath=""
+opt_cpus=2
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
     --efi)
       opt_efi=1
+      ;;
+    --cpus)
+      shift
+      opt_cpus="$1"
       ;;
     --video)
       opt_video=1
@@ -89,6 +94,7 @@ $0 [image src name] [VM name]
 
   --efi           Configure the booting VM to boot with EFI and NVVARS.
   --video         Attach a video device to a standard VM
+  --cpus          Specify number of CPUs (default 2)
   --extra-disks   Specify extra disks to attach as a comma (,) separated list of sizes (i.e. 100G)
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
@@ -486,7 +492,7 @@ cat << EOF > "$xml_def"
   <name>${vm_name}</name>
   <memory unit='B'>$ram_bytes</memory>
   <currentMemory unit='B'>$ram_bytes</currentMemory>
-  <vcpu placement='auto'>2</vcpu>
+  <vcpu placement='auto'>${opt_cpus}</vcpu>
   <numatune>
     <memory mode='strict' placement='auto'/>
   </numatune>

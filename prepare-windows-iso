@@ -241,6 +241,11 @@ if ! xorriso -as mkisofs \
         -b boot/etfsboot.com \
         -e efi/microsoft/boot/efisys.bin \
         -iso-level 3 \
+        -J \
+        -D \
+        -N \
+        -joliet-long \
+        -relaxed-filenames \
         -V "$(echo "${output_iso%.*}" | cut -c -32)" \
         -o "${output_iso}" \
         "${work_dir}" ; then

@@ -217,6 +217,37 @@ provisions once the user sets up an account.
 The image that comes up should be able to be SSH'd into Powershell using your default SSH
 key. The user will have your name but be administrator.
 
+## Windows 7 Image
+
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w7/virtio w7
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w7/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w7/virtio/viostor \
+    --add-drivers generated/virtio-w7 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-7-image/extra \
+    downloaded/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso \
+    $(libvirt_default_pool)/win-7-unattended-virtio-image-updated.iso \
+    win-7-image/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./launch-cloud-image --cpus 1 --efi --windows --installer win-7-unattended-virtio-image-updated.iso win7-base
+```
+
+Note: For some reason Windows can't hack a multi-core install.
+
+Then spawn a cloud image to test with:
+
+```bash
+./launch-cloud-image --efi --windows lci.win7-base.root.qcow2 t1
+```
+
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
 
