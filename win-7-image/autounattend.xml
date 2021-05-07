@@ -83,15 +83,13 @@
                     </InstallTo>
                 </OSImage>
             </ImageInstall>
-            <!--  -->
-            <RunSynchronous>
+            <!-- <RunSynchronous>
                 <RunSynchronousCommand wcm:action="add">
                     <Order>100</Order>
                     <Path>reg add HKCU\Software\Policies\Microsoft\Windows NT\Driver Signing /f /v BehaviorOnFailedVerify /t DWORD /d 0</Path>
                     <Description>Run Cloudbase-Init to set the hostname</Description>
-                    <!-- <WillReboot>Always</WillReboot> -->
                 </RunSynchronousCommand>
-            </RunSynchronous>
+            </RunSynchronous> -->
         </component>
     </settings>
     <settings pass="offlineServicing">
@@ -140,124 +138,103 @@
             <UserAuthentication>0</UserAuthentication>
         </component>
     </settings>
-    <settings pass="oobeSystem">
-        <!-- <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <InputLocale>en-AU<InputLocale/>
-            <SystemLocale>en-AU<SystemLocale/>
-            <UILanguage>en-AU<UILanguage/>
-            <UILanguageFallback>en-US<UILanguageFallback/>
-            <UserLocale>en-AU<UserLocale/>
-        </component> -->
-        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+    <settings pass="auditUser">
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-            <UserAccounts>
-                <AdministratorPassword>
-                    <Value>hunter2</Value>
-                    <PlainText>true</PlainText>
-                </AdministratorPassword>
-            </UserAccounts>
-            <AutoLogon>
-                <Username>Administrator</Username>
-                <Password>
-                    <Value>hunter2</Value>
-                    <PlainText>true</PlainText>
-                </Password>
-                <Enabled>true</Enabled>
-                <!-- Need to login once to let final setup complete.
-                Commands below log out once finished.-->
-                <LogonCount>1</LogonCount>
-            </AutoLogon>
-            <OOBE>
-                <HideEULAPage>true</HideEULAPage>
-                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
-                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
-                <UnattendEnableRetailDemo>false</UnattendEnableRetailDemo>
-                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
-                <NetworkLocation>Work</NetworkLocation>
-                <ProtectYourPC>1</ProtectYourPC>
-                <SkipMachineOOBE>true</SkipMachineOOBE>
-                <SkipUserOOBE>true</SkipUserOOBE>
-            </OOBE>
-            <FirstLogonCommands>
+            <RunSynchronous>
                 <!-- Disable the Network Discovery Prompt -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff /f</CommandLine>
-                    <Description>Disable network discovery prompt for all users</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>10</Order>
-                </SynchronousCommand>
+                    <Path>reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff /f</Path>
+                    <Description>Disable network discovery prompt for all users</Description>
+                </RunSynchronousCommand>
 
                 <!-- Set Execution Policy -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</CommandLine>
-                    <Description>Set Execution Policy 64 Bit</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>30</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</Path>
+                    <Description>Set Execution Policy 64 Bit</Description>
+                </RunSynchronousCommand>
 
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>C:\Windows\SysWOW64\cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</CommandLine>
-                    <Description>Set Execution Policy 32 Bit</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>40</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>C:\Windows\SysWOW64\cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</Path>
+                    <Description>Set Execution Policy 32 Bit</Description>
+                </RunSynchronousCommand>
+
+                <!-- Virtual Machine preferred options -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>44</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\vm.ps1</Path>
+                    <Description>Configure Windows System-Wide Settings</Description>
+                </RunSynchronousCommand>
 
                 <!-- Create a less annoying default shell -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</CommandLine>
-                    <Description>Configure Windows UX</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>45</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</Path>
+                    <Description>Configure Windows UX</Description>
+                </RunSynchronousCommand>
 
                 <!-- Run the virtio-win installer to finish up driver installation -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\virtio-drivers.ps1</CommandLine>
-                    <Description>Install QEMU guest agent</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>50</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\virtio-drivers.ps1</Path>
+                    <Description>Install QEMU guest agent</Description>
+                </RunSynchronousCommand>
 
                 <!-- Enable misc firewall rules -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\firewall-misc.ps1</CommandLine>
-                    <Description>Miscellaneous Firewall Setup</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>60</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\firewall-misc.ps1</Path>
+                    <Description>Miscellaneous Firewall Setup</Description>
+                </RunSynchronousCommand>
 
                 <!-- Setup Windows Remoting over HTTP -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\winrm-setup.ps1</CommandLine>
-                    <Description>Enable Windows Remoting over HTTPS</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>70</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\winrm-setup.ps1</Path>
+                    <Description>Enable Windows Remoting over HTTPS</Description>
+                </RunSynchronousCommand>
 
                 <!-- Setup Windows Remoting over HTTP -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\ssh.ps1</CommandLine>
-                    <Description>Enable SSH</Description>
+                <RunSynchronousCommand wcm:action="add">
                     <Order>80</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\ssh.ps1</Path>
+                    <Description>Enable SSH</Description>
+                </RunSynchronousCommand>
+
+                <!-- Run Windows Update -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>85</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\windows-update.ps1</Path>
+                    <Description>Windows Update</Description>
+                </RunSynchronousCommand>
+
+                <!-- <RunSynchronousCommand wcm:action="add">
+                    <Order>86</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\debloat-win10.ps1</Path>
+                    <Description>Remove Windows 10 Application bloat</Description>
+                </RunSynchronousCommand> -->
 
                 <!-- Install Cloudbase-Init and Sysprep -->
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\cloudbaseinit.ps1</CommandLine>
-                    <Description>Install cloudbase-init and sysprep</Description>
+                <!-- <RunSynchronousCommand wcm:action="add">
                     <Order>90</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand>
-
-                <!-- Log off after all setup is complete -->
-                <!-- <SynchronousCommand wcm:action="add">
-                    <CommandLine>cmd.exe /c logoff</CommandLine>
-                    <Description>Logoff after initial provisioning</Description>
-                    <Order>100</Order>
-                    <RequiresUserInput>true</RequiresUserInput>
-                </SynchronousCommand> -->
-            </FirstLogonCommands>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\cloudbaseinit.ps1</Path>
+                    <Description>Install cloudbase-init and sysprep</Description>
+                </RunSynchronousCommand> -->
+            </RunSynchronous>
+        </component>
+    </settings>
+    <!-- oobeSystem -->
+    <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <Reseal>
+                <Mode>Audit</Mode>
+            </Reseal>
         </component>
     </settings>
 </unattend>

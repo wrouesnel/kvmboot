@@ -241,6 +241,9 @@ Then launch to install the base image:
 ```
 
 Note: For some reason Windows can't hack a multi-core install.
+This image will also fail with a driver signing problem which doesn't have a
+clean solution in Linux land. You need to F8 around and disable enforcement
+until updates apply.
 
 Then spawn a cloud image to test with:
 
