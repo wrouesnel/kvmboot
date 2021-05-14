@@ -101,6 +101,7 @@ $0 [image src name] [VM name]
   --installer     Makes a blank disk and mounts the requested image as an ISO instead.
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
+  --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
   --help          Display this help text.
 
 EOF
@@ -123,7 +124,6 @@ shift
 
 if [ -n "$opt_isopath" ]; then
   image_src="ISOPATH"
-  image_name="ISOPATH"
 fi
 
 # Convert ram bytes
