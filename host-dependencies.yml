@@ -9,6 +9,7 @@
     virtio_win_iso: "virtio-win.iso"
     cloudbase_init_installer: "CloudbaseInitSetup_Stable_x64.msi"
     win_2k19_iso: "17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"
+    win10_iso: "Win10_20H2_v2_English_x64.iso"
     win7_iso: en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
     # Software Names
     procmon_installer: ProcessMonitor.zip
@@ -71,20 +72,45 @@
             dest: "{{files_dir}}/{{vscode_installer}}"
 
 
-    - name: Check for Windows ISO files
+    - name: Check for Windows Server 2K19 ISO files
       block:
         - name: Windows Server 2019 ISO must exist
           stat:
             path: "{{files_dir}}/{{win_2k19_iso}}"
           register: win_wk19_st
-          failed_when: not win_wk19_st.stat.exists
+          when: not win_wk19_st.stat.exists
 
-        - name: win-7-unattended-virtio-image-updated.iso
-        - get_url:
-            url: https://the-eye.eu/public/MSDN/Windows%207/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
-            dest: "{{files_dir}}/{{win7.iso}}"
+        # - name: Download Win 2K19 ISO
+        #   get_url:
+        #     url: https://the-eye.eu/public/MSDN/Windows%207/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
+        #     dest: "{{files_dir}}/{{win7_iso}}"
+        #   when: not win_wk19_st.stat.exists
+
+    - name: Check for Windows 10 ISO files
+      block:
+        - name: Windows 10 ISO must exist
+          stat:
+            path: "{{files_dir}}/{{win10_iso}}"
+          register: win_10_st
+
+        - name: Download the Win 7 ISO
+          get_url:
+            url: https://software-download.microsoft.com/sg/Win10_20H2_v2_English_x64.iso?t=e9868523-e6f5-4804-8e43-1db4340f3615&e=1621343235&h=0ae68227da3db427fb472f65bd4c6894
+            dest: "{{files_dir}}/{{win7_iso}}"
+          when: not win_10_st.stat.exists
+
+    - name: Check for Windows 7 ISO files
+      block:
+        - name: Windows 7 ISO must exist
+          stat:
+            path: "{{files_dir}}/{{win7_iso}}"
           register: win_7_st
-          failed_when: not win_7_st.stat.exists
+
+        - name: Download the Win 7 ISO
+          get_url:
+            url: https://the-eye.eu/public/MSDN/Windows%207/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
+            dest: "{{files_dir}}/{{win7_iso}}"
+          when: not win_7_st.stat.exists
 
     - name: Install launch-cloud-image dependencies
       become: true
