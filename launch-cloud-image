@@ -496,7 +496,7 @@ cat << EOF > "$xml_def"
   <numatune>
     <memory mode='strict' placement='auto'/>
   </numatune>
-  <iothreads>1</iothreads>
+  <iothreads>${opt_cpus}</iothreads>
   <!-- TODO: cputune from system data -->
   <os>
     <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
@@ -509,7 +509,11 @@ cat << EOF > "$xml_def"
     <vmport state='off'/>
     $features_xml
   </features>
-  <cpu mode="host-passthrough"/>
+  <cpu mode="custom" match="exact" check="none">
+    <model fallback="allow">EPYC</model>
+    <topology sockets="1" dies="1" cores="$((opt_cpus / 2))" threads="2"/>
+    <feature policy='require' name='topoext'/>
+  </cpu>
   <clock offset='$clock_offset'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>
