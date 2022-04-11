@@ -1,4 +1,4 @@
-# Launch Cloud Image
+# kvmboot
 
 ## Important!
 
@@ -93,9 +93,9 @@ The following policy enables the virtual machines we launch to touch the home di
 Compile and install the host SELinux policy:
 
 ```bash
-checkmodule -M -m -o launch-cloud-image.mod launch-cloud-image.te
-semodule_package -o launch-cloud-image.pp -m launch-cloud-image.mod
-sudo semodule -i launch-cloud-image.pp
+checkmodule -M -m -o kvmboot.mod kvmboot.te
+semodule_package -o kvmboot.pp -m kvmboot.mod
+sudo semodule -i kvmboot.pp
 ```
 
 This policy grants common sense access which allows read-everything but prevents updates to
@@ -131,13 +131,13 @@ function libvirt_default_pool() {
 Then launch to install the base image:
 
 ```bash
-./launch-cloud-image --efi --windows --installer win-2k19-Unattended-Virtio.iso Win2k19-Base
+./kvmboot --efi --windows --installer win-2k19-Unattended-Virtio.iso Win2k19-Base
 ```
 
 Then spawn a cloud image to test with:
 
 ```bash
-./launch-cloud-image --efi --windows lci.Win2k19-Base.root.qcow2 t1
+./kvmboot --efi --windows lci.Win2k19-Base.root.qcow2 t1
 ```
 
 ## Windows 10 Image
@@ -159,13 +159,13 @@ Then spawn a cloud image to test with:
 Then launch to install the base image:
 
 ```bash
-./launch-cloud-image --efi --windows --installer win-10-unattended-virtio-image.iso win10-base
+./kvmboot --efi --windows --installer win-10-unattended-virtio-image.iso win10-base
 ```
 
 Then spawn a cloud image to test with:
 
 ```bash
-./launch-cloud-image --efi --windows lci.win10-base.root.qcow2 t1
+./kvmboot --efi --windows lci.win10-base.root.qcow2 t1
 ```
 
 ## Windows 10 Updated Image
@@ -187,13 +187,13 @@ Then spawn a cloud image to test with:
 Then launch to install the base image:
 
 ```bash
-./launch-cloud-image --efi --windows --installer win-10-unattended-virtio-image-updated.iso win10-base
+./kvmboot --efi --windows --installer win-10-unattended-virtio-image-updated.iso win10-base
 ```
 
 Then spawn a cloud image to test with:
 
 ```bash
-./launch-cloud-image --efi --windows lci.win10-base.root.qcow2 t1
+./kvmboot --efi --windows lci.win10-base.root.qcow2 t1
 ```
 
 ## Windows 10 User Machine
@@ -237,7 +237,7 @@ key. The user will have your name but be administrator.
 Then launch to install the base image:
 
 ```bash
-./launch-cloud-image --cpus 1 --efi --windows --installer win-7-unattended-virtio-image-updated.iso win7-base
+./kvmboot --cpus 1 --efi --windows --installer win-7-unattended-virtio-image-updated.iso win7-base
 ```
 
 Note: For some reason Windows can't hack a multi-core install.
@@ -248,7 +248,7 @@ until updates apply.
 Then spawn a cloud image to test with:
 
 ```bash
-./launch-cloud-image --efi --windows lci.win7-base.root.qcow2 t1
+./kvmboot --efi --windows lci.win7-base.root.qcow2 t1
 ```
 
 ## Injecting an initial SSH key for Administrator
