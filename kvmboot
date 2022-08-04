@@ -45,6 +45,7 @@ opt_user="$(id -u -n)"
 opt_password="$($pwgen 20)"
 opt_isopath=""
 opt_cpus=2
+opt_arch="x86_64"
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -88,6 +89,10 @@ while [ -n "$1" ] ; do
       shift
       opt_isopath="$1"
       ;;
+    --arch)
+      shift
+      opt_arch="$1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -102,6 +107,7 @@ $0 [image src name] [VM name]
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
   --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
+  --arch          Specify the architecture (x86_64 or arm64)
   --help          Display this help text.
 
 EOF
@@ -113,6 +119,21 @@ EOF
     esac
     shift
 done
+
+arch=""
+case "$opt_arch" in
+  amd64|x86_64)
+    log "Architecture: amd64 (x86_64)"
+    arch="x86_64"
+  ;;
+  arm64)
+    log "Architecture: arm64 (aarch64)"
+    arch="aarch64"
+    ;;
+  *)
+    fatal 1 "Unknown architectue: $opt_arch"
+  ;;
+esac
 
 # Best effort image source
 image_src="$1"
@@ -428,10 +449,20 @@ if [ $opt_efi = 1 ]; then
   if [ -e "${nvram_path}/${image_src}_VARS.fd" ]; then
     cp "${nvram_path}/${image_src}_VARS.fd" "${efi_vars_path}"
   else 
-    cp "/usr/share/OVMF/OVMF_VARS.fd" "${efi_vars_path}"
+    case "$arch" in
+      aarch64)
+        cp "/usr/share/AAVMF/AAVMF_VARS.fd" "${efi_vars_path}"
+        nvram1='<loader readonly="yes" type="pflash">/usr/share/AAVMF/AAVMF_CODE.fd</loader>'
+      ;;
+      x86_64)
+        cp "/usr/share/OVMF/OVMF_VARS.fd" "${efi_vars_path}"
+        nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
+      ;;
+    esac
+
   fi
 
-  nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
+  
   nvram2="<nvram>${efi_vars_path}</nvram>"
 else
   nvram1=""
@@ -452,6 +483,10 @@ EOF
 fi
 
 features_xml=""
+read -r -d '' features_xml << EOF
+    <acpi/>
+    <vmport state='off'/>
+EOF
 clock_offset="utc"
 if [ $opt_windows = 1 ]; then
   clock_offset="localtime"
@@ -466,6 +501,8 @@ if [ $opt_windows = 1 ]; then
 EOF
 
   read -r -d '' features_xml << EOF
+    <acpi/>
+    <vmport state='off'/>
     <hyperv>
       <relaxed state='on'/>
       <vapic state='on'/>
@@ -480,6 +517,111 @@ EOF
 EOF
 fi
 
+# Default CPU config
+cpu_xml=""
+read -r -d '' cpu_xml << EOF
+  <os>
+    <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
+    $nvram1
+    $nvram2
+  </os>
+  <cpu mode="custom" match="exact" check="none">
+    <model fallback="allow">EPYC</model>
+    <topology sockets="1" dies="1" cores="$((opt_cpus / 2))" threads="2"/>
+    <feature policy='require' name='topoext'/>
+  </cpu>
+EOF
+emulator="/usr/bin/qemu-system-x86_64"
+virt_type="kvm"
+
+controller_xml=""
+read -r -d '' controller_xml << EOF
+<controller type="pci" index="0" model="pci-root"/>
+EOF
+
+clock_xml=""
+read -r -d '' clock_xml << EOF
+  <clock offset='$clock_offset'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+    <timer name='hypervclock' present='yes'/>
+    <timer name='tsc' present='yes' mode='native'/>
+  </clock>
+EOF
+
+pm_xml=""
+read -r -d '' pm_xml << EOF
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+EOF
+
+serial_xml=""
+read -r -d '' serial_xml << EOF
+    <serial type='pty'>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+    </serial>
+EOF
+
+input_xml=""
+read -r -d '' input_xml << EOF
+    <input type='tablet' bus='usb'/>
+    <input type='mouse' bus='ps2'/>
+EOF
+
+# Was arm requested?
+if [ "$arch" = "aarch64" ]; then
+  read -r -d '' cpu_xml << EOF
+  <os>
+    <type arch="aarch64" machine="virt">hvm</type>
+    $nvram1
+    $nvram2
+  </os>
+  <cpu mode='custom' match='exact' check='none'>
+    <model fallback='allow'>cortex-a53</model>
+  </cpu>
+EOF
+
+  read -r -d '' features_xml << EOF
+    <pae/>
+    <gic version='2'/>
+EOF
+
+  read -r -d '' controller_xml << EOF
+  <controller type="pci" index="0" model="pcie-root"/>
+EOF
+
+  read -r -d '' clock_xml << EOF
+  <clock offset='$clock_offset'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+EOF
+
+  pm_xml=""
+
+  read -r -d '' serial_xml << EOF
+    <serial type='pty'>
+      <target type='pci-serial' port='0'>
+        <model name='pci-serial'/>
+      </target>
+    </serial>
+EOF
+
+read -r -d '' input_xml << EOF
+    <input type='tablet' bus='usb'/>
+    <input type='mouse' bus='usb'/>
+EOF
+
+  emulator="/usr/bin/qemu-system-aarch64"
+  virt_type="qemu"
+fi
+
 root_boot_order_xml='<boot order="1"/>'
 cd_boot_order_xml=
 if [ $opt_installer = 1 ]; then
@@ -488,7 +630,7 @@ if [ $opt_installer = 1 ]; then
 fi
 
 cat << EOF > "$xml_def"
-<domain type='kvm'>
+<domain type='$virt_type'>
   <name>${vm_name}</name>
   <memory unit='B'>$ram_bytes</memory>
   <currentMemory unit='B'>$ram_bytes</currentMemory>
@@ -498,38 +640,18 @@ cat << EOF > "$xml_def"
   </numatune>
   <iothreads>${opt_cpus}</iothreads>
   <!-- TODO: cputune from system data -->
-  <os>
-    <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
-    $nvram1
-    $nvram2
-  </os>
+  $cpu_xml
   <features>
-    <acpi/>
     <apic/>
-    <vmport state='off'/>
     $features_xml
   </features>
-  <cpu mode="custom" match="exact" check="none">
-    <model fallback="allow">EPYC</model>
-    <topology sockets="1" dies="1" cores="$((opt_cpus / 2))" threads="2"/>
-    <feature policy='require' name='topoext'/>
-  </cpu>
-  <clock offset='$clock_offset'>
-    <timer name='rtc' tickpolicy='catchup'/>
-    <timer name='pit' tickpolicy='delay'/>
-    <timer name='hpet' present='no'/>
-    <timer name='hypervclock' present='yes'/>
-    <timer name='tsc' present='yes' mode='native'/>
-  </clock>
+  $clock_xml
   <on_poweroff>destroy</on_poweroff>
   <on_reboot>restart</on_reboot>
   <on_crash>destroy</on_crash>
-  <pm>
-    <suspend-to-mem enabled='no'/>
-    <suspend-to-disk enabled='no'/>
-  </pm>
+  $pm_xml
   <devices>
-    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <emulator>$emulator</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2' io='native' cache='none' discard='unmap' iothread='1'/>
       <source file='${root_disk_path}'/>
@@ -548,7 +670,7 @@ cat << EOF > "$xml_def"
 
     <controller type='usb' index='0' model='qemu-xhci' ports='15'/>
     <controller type='sata' index='0'/>
-    <controller type="pci" index="0" model="pci-root"/>
+    $controller_xml
     <controller type='virtio-serial' index='0'/>
     <interface type='bridge'>
       <mac address='${mac_addr}'/>
@@ -556,11 +678,7 @@ cat << EOF > "$xml_def"
       <target dev='tap0'/>
       <model type='virtio'/>
     </interface>
-    <serial type='pty'>
-      <target type='isa-serial' port='0'>
-        <model name='isa-serial'/>
-      </target>
-    </serial>
+    $serial_xml
     <console type='pty'>
       <target type='serial' port='0'/>
     </console>
@@ -570,8 +688,7 @@ cat << EOF > "$xml_def"
     <channel type='spicevmc'>
       <target type='virtio' name='com.redhat.spice.0'/>
     </channel>
-    <input type='tablet' bus='usb'/>
-    <input type='mouse' bus='ps2'/>
+    $input_xml
 
     <redirdev bus='usb' type='spicevmc'/>
     <memballoon model='virtio'/>
