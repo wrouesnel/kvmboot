@@ -469,3 +469,15 @@ Remove-Item "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryMana
 Remove-Item "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager\SuggestedApps" `
     -Recurse `
     -Force
+
+# ************************************************************ *
+# * Disable web search suggestions in the Start Menu *
+# ************************************************************ *
+New-Item -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" `
+    -Force
+
+New-ItemProperty -Path "HKCU:\SOFTWARE\Policies\Microsoft\Windows\Explorer" `
+    -Name "DisableSearchBoxSuggestions" `
+    -PropertyType DWORD `
+    -Value 0x00000001 `
+    -Force
