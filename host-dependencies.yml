@@ -126,6 +126,7 @@
           - udftools
           - jq
           - numad
+          - swtpm-tools
         state: latest
 
     - name: Install Windows ISO manipulation dependencies

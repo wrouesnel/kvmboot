@@ -689,6 +689,9 @@ cat << EOF > "$xml_def"
       <target type='virtio' name='com.redhat.spice.0'/>
     </channel>
     $input_xml
+    <tpm model="tpm-crb">
+      <backend type="emulator" version="2.0"/>
+    </tpm>
 
     <redirdev bus='usb' type='spicevmc'/>
     <memballoon model='virtio'/>

@@ -86,6 +86,17 @@ chmod 0644 /etc/qemu/bridge.conf
 chmod u+s /usr/lib/qemu/qemu-bridge-helper
 ```
 
+## Configure SWT-PM for the local user
+
+/usr/share/swtpm/swtpm-create-user-config-files
+
+### On Ubuntu
+```
+sudo aa-complain /usr/bin/swtpm
+```
+
+AppArmor profile is broken on Ubuntu 22.04
+
 ## Optional: Enable host passthrough to your home directory for SELinux
 
 The following policy enables the virtual machines we launch to touch the home directory on the host.
@@ -216,6 +227,33 @@ provisions once the user sets up an account.
 
 The image that comes up should be able to be SSH'd into Powershell using your default SSH
 key. The user will have your name but be administrator.
+
+## Windows 11 User Machine
+
+This version skips the cloudbase-init step, and leaves you with an image which
+provisions once the user sets up an account.
+
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w11/virtio w11
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w11/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w11/virtio/viostor \
+    --add-drivers generated/virtio-w11 \
+    --add-drivers win-common/extra \
+    --add-drivers win-11-user/extra \
+    downloaded/Win11_23H2_English_x64v2.iso \
+    $(libvirt_default_pool)/win-11-unattended-virtio-user.iso \
+    win-11-user/autounattend.xml
+```
+
+The image that comes up should be able to be SSH'd into Powershell using your default SSH
+key. The user will have your name but be administrator.
+
+Then launch to install the base image:
+
+```bash
+./kvmboot --efi --windows --installer win-11-unattended-virtio-user.iso win11-base
+```
 
 ## Windows 7 Image
 
