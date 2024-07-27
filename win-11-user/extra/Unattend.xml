@@ -18,9 +18,26 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <RunSynchronous>
                 <!-- offline local account via OOBE\BYPASSNRO on every site but literally no one credits AveYo for sharing it -->
-                <RunSynchronousCommand wcm:action="add"><Order>1</Order>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>1</Order>
                     <Path>reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OOBE /v BypassNRO /t reg_dword /d 1 /f</Path>
+                    <Description>Offline Local Account</Description>
                 </RunSynchronousCommand>
+
+                <!-- Windows 11 specific tweaks -->
+                <!-- We run the same script in several places to try and hit everything we need to -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>86</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\win11-debloat.ps1</Path>
+                    <Description>Remove Windows 11 Extraneous Features</Description>
+                </RunSynchronousCommand>
+
+                <!-- LMAO: it breaks OOBE if you do this. -->
+                <!-- <RunSynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <Path>reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\System /v NoLocalPasswordResetQuestions /t reg_dword /d 1 /f</Path>
+                    <Description>No local password reset questions</Description>
+                </RunSynchronousCommand> -->
                 <RunSynchronousCommand wcm:action="add">
                     <Order>110</Order>
                     <Path>cmd.exe /c "net user Administrator /active:no"</Path>
@@ -37,9 +54,16 @@
     </settings>
     <!-- oobeSystem -->
     <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>0409:00000409</InputLocale>
+            <UILanguage>au-au</UILanguage>
+            <UserLocale>en-au</UserLocale>
+            <SystemLocale>en-au</SystemLocale>
+        </component>
+
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
             xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
-            <OOBE>
+            <!-- <OOBE>
                 <HideEULAPage>true</HideEULAPage>
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
                 <HideLocalAccountScreen>false</HideLocalAccountScreen>
@@ -50,7 +74,27 @@
                 <ProtectYourPC>1</ProtectYourPC>
                 <SkipMachineOOBE>true</SkipMachineOOBE>
                 <SkipUserOOBE>false</SkipUserOOBE>
+            </OOBE> -->
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <HideLocalAccountScreen>false</HideLocalAccountScreen>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <UnattendEnableRetailDemo>false</UnattendEnableRetailDemo>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>1</ProtectYourPC>
+                <SkipMachineOOBE>false</SkipMachineOOBE>
+                <SkipUserOOBE>false</SkipUserOOBE>
             </OOBE>
+
+            <LogonCommands>
+                <AsynchronousCommand wcm:action="add">
+                    <Order>86</Order>
+                    <CommandLine>cmd.exe /c powershell -File C:\Drivers\scripts\win11-debloat.ps1</CommandLine>
+                    <Description>Remove Windows 11 Extraneous Features</Description>
+                </AsynchronousCommand>
+            </LogonCommands>
         </component>
     </settings>
 </unattend>

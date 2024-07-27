@@ -22,6 +22,10 @@ function _atexit_handler() {
 
 trap _atexit_handler EXIT
 
+function log() {
+  echo "$*" 1>&2
+}
+
 function fatal() {
   local exit_code="$1"
   shift
@@ -100,33 +104,34 @@ if [ -z "$unattend_xml_file" ]; then
     echo "WARN: No autounattend.xml file specified!"
 fi
 
-# Setup temporary working directories
+log "Setup temporary working directories"
 work_dir=$(mktemp -d)
 if [ -z "$work_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
 atexit find "${work_dir}" -delete
 
-# Mount the ISO - use udisks because UDF can't be handled by fuseio
-
+log "Mount the ISO - use udisks because UDF can't be handled by fuseio"
 if ! loop_dev=$(udisksctl loop-setup -f "${iso_file}" | grep -oP 'as .*'); then
     fatal 1 "Could not mount ISO image with udisks"
 fi
 
-# Cut the string to get the /dev/loopX part
+log "Cut the string to get the /dev/loopX part"
 loop_dev="${loop_dev##* }"
 loop_dev="${loop_dev%%.*}"
 
-# Ensure a mount happens.
+atexit udisksctl loop-delete -b "${loop_dev}"
+
+log "Ensure a mount happens"
 udisksctl mount -b "${loop_dev}" 1>/dev/null 2>&1
 atexit udisksctl unmount -b "${loop_dev}"
 
-# Find the mount path.
+log "Find the mount path"
 if ! mnt_dir="$(udisksctl info -b "${loop_dev}" | tr -s ' ' | cut -d' ' -f2- | grep 'MountPoints' | cut -d' ' -f2)"; then
     fatal 1 "Could not find the mount path"
 fi
 
-# Copy the install.wim to directory for editing.
+log "Copy the install.wim to directory for editing."
 if ! mkdir -p "${work_dir}/sources"; then
     fatal 1 "Create subdirectories"
 fi
@@ -144,12 +149,12 @@ if [ -z "$bootwim_mnt_dir" ]; then
 fi
 atexit rmdir "${bootwim_mnt_dir}"
 
-# Collect boot.wim info.
+log "Collect boot.wim info."
 if ! bootwim_image_count="$(wiminfo "${work_dir}/sources/boot.wim" | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
     fatal 1 "Could not determine number of images in the wimfile"
 fi
 
-# boot.wim editing
+log "boot.wim editing"
 mounted_dirs=()
 for i in $(seq 1 ${bootwim_image_count}); do
     if ! mkdir "${bootwim_mnt_dir}/$i"; then
@@ -182,12 +187,12 @@ if [ -z "$wim_mnt_dir" ]; then
 fi
 atexit rmdir "${wim_mnt_dir}"
 
-# Collect install.wim info.
+log "Collect install.wim info."
 if ! wim_image_count="$(wiminfo ${work_dir}/sources/install.wim | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
     fatal 1 "Could not determine number of images in the wimfile"
 fi
 
-# install.wim editing
+log "install.wim editing"
 mounted_dirs=()
 for i in $(seq 1 ${wim_image_count}); do
     if ! mkdir "${wim_mnt_dir}/$i"; then
@@ -215,14 +220,14 @@ done
 
 
 
-# Copy unattend to autounattend.xml
+log "Copy unattend to autounattend.xml"
 if [ -n "$unattend_xml_file" ]; then
     if ! cp --no-preserve=all "$unattend_xml_file" "${work_dir}/autounattend.xml" ; then
         fatal 1 "Error copying unattended XML file to work directory"
     fi
 fi
 
-# Remove the prompt for a key
+log "Remove the prompt for a key"
 if ! rm -f "${work_dir}/boot/bootfix.bin" ; then
     fatal 1 "Error removing boot keyboard prompt"
 fi
@@ -235,7 +240,7 @@ if ! cp -f "${work_dir}/efi/microsoft/boot/cdboot_noprompt.efi" "${work_dir}/efi
     fatal 1 "Error removng CD boot prompt"
 fi
 
-# Rebuild the ISO
+log "Rebuild the ISO"
 if ! xorriso -as mkisofs \
         -no-emul-boot \
         -b boot/etfsboot.com \
