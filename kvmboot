@@ -35,10 +35,14 @@ qemuimg="$(command -v qemu-img)"
 secrettool="$(command -v secret-tool)"
 pwgen="$(command -v pwgen)"
 
+_default_ram="4G"
+_default_ram_for_video="6G"
+
 opt_efi=0
 opt_video=0
 opt_extra_disks=
-opt_ram=4G
+opt_ram="${_default_ram}"
+opt_ram_set=1
 opt_windows=0
 opt_installer=0
 opt_user="$(id -u -n)"
@@ -66,6 +70,8 @@ while [ -n "$1" ] ; do
       ;;
     --ram)
       shift
+      # Flag the RAM is set
+      opt_ram_set=0
       opt_ram="$1"
       ;;
     --windows)
@@ -148,6 +154,10 @@ if [ -n "$opt_isopath" ]; then
 fi
 
 # Convert ram bytes
+# If --video is specified, bump the default to 6G
+if [ $opt_ram_set = 1 ]; then
+  opt_ram="${_default_ram_for_video}"
+fi
 ram_bytes=$(echo "$opt_ram" | numfmt --from=iec)
 
 if [ -z "$image_name" ]; then
@@ -471,13 +481,18 @@ fi
 
 video_xml=""
 if [ $opt_video = 1 ]; then
+  # 3D Acceleration doesn't really work well, but QXL seems broken
+  # on newer Linux kernels.
   read -r -d '' video_xml << EOF
-    <graphics type='spice' autoport='yes'>
-      <listen type="address" address="127.0.0.1"/>
+    <graphics type='spice'>
+      <listen type="none"/>
       <image compression='off'/>
+      <!-- <gl enable="yes"/> -->
     </graphics>
     <video>
-      <model type="qxl" heads="1" primary="yes"/>
+      <model type="virtio" heads="1" primary="yes">
+        <!-- <acceleration accel3d="yes"/> -->
+      </model>
     </video>
 EOF
 fi
@@ -633,6 +648,10 @@ cat << EOF > "$xml_def"
 <domain type='$virt_type'>
   <name>${vm_name}</name>
   <memory unit='B'>$ram_bytes</memory>
+  <memoryBacking>
+    <source type="memfd"/>
+    <access mode="shared"/>
+  </memoryBacking>
   <currentMemory unit='B'>$ram_bytes</currentMemory>
   <vcpu placement='auto'>${opt_cpus}</vcpu>
   <numatune>

@@ -65,24 +65,13 @@ function ensure_mount() {
 }
 
 # Collect optional arguments
-bootdrivers_dir=()
-drivers_dir=()
+opt_proxy=
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
-    --add-boot-drivers)
+    --proxy)
       shift
-      bootdrivers_dir+=( "$1" )
-      if [ ! -d "${bootdrivers_dir}" ]; then
-        fatal 1 "Driver directory needs to exist."
-      fi
-      ;;
-    --add-drivers)
-      shift
-      drivers_dir+=( "$1" )
-      if [ ! -d "${drivers_dir}" ]; then
-        fatal 1 "Driver directory needs to exist."
-      fi
+      opt_proxy="$1"
       ;;
     --help)
       cat << EOF 1>&2
@@ -91,6 +80,7 @@ $0 [Ubuntu ISO] [Output ISO Name] [autoinstall.yaml file]
 Repack an Ubuntu ISO for unattended installation.
 
     --help              Shows this help.
+    --proxy             Set a proxy server for APT
 
 EOF
       ;;
@@ -236,6 +226,13 @@ log "Copy the autoinstall.yaml file to the working directory: ${autoinstall_yaml
 if [ -n "$autoinstall_yaml_file" ]; then
     if ! cp --no-preserve=all "$autoinstall_yaml_file" "${work_dir}/autoinstall.yaml" ; then
         fatal 1 "Error copying autoinstall.yaml file to work directory"
+    fi
+
+    if [ -n "${opt_proxy}" ]; then
+      log "Configuring proxy server for install: $opt_proxy"
+      if ! sed -i 's#^proxy: .*#proxy: '"$opt_proxy"'#g' "${work_dir}/autoinstall.yaml"; then
+        fatal 1 "Error configuring proxy"
+      fi
     fi
 fi
 
