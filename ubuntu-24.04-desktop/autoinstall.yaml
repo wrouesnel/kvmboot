@@ -1,0 +1,25 @@
+version: 1
+# Install cinnamon
+# source:
+#   id: ubuntucinnamon-desktop-minimal
+# refresh-installer:
+#   update: false
+# source:
+#   id: ubuntu-desktop-minimal
+# Install ZFS layout
+storage:
+  layout:
+    name: zfs
+# Install SSH
+ssh:
+  install-server: true
+  allow-pw: true
+# Packages
+packages:
+  - qemu-guest-agent
+# Timezone
+timezone: Australia/Sydney
+# This inhibits user creation, which for Desktop images means that
+# gnome-initial-setup will prompt for user creation on first boot.
+user-data:
+  users: ['']

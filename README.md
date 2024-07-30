@@ -289,6 +289,13 @@ Then spawn a cloud image to test with:
 ./kvmboot --efi --windows lci.win7-base.root.qcow2 t1
 ```
 
+## Ubuntu 24.04 Image
+
+Run the following to build an autoinstalling Ubuntu 24.04 image. The reason to do this over using the cloud-init
+images is to get a ZFS filesystem.
+
+
+
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
 
