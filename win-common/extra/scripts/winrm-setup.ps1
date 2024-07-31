@@ -96,6 +96,13 @@ Remove-WSManInstance `
     -SelectorSet @{Address="*";Transport="HTTP"}
 Write-Verbose "Disabled HTTP listener"
 
+# This is necessary for the ansible win_dsc module to work properly. Since it only
+# listens on localhost, it solves any concerns we'd have with network eavesdropping.
+Write-Verbose "Enabling localhost only HTTP WinRM listener"
+New-WSManInstance -ResourceURI 'winrm/config/Listener' `
+    -SelectorSet @{ Transport = "HTTP"; Address = "IP:127.0.0.1" }
+Write-Verbose "Enabled localhost only HTTP WinRM listener"
+
 # Check for basic authentication.
 $basicAuthSetting = Get-ChildItem WSMan:\localhost\Service\Auth | Where-Object {$_.Name -eq "Basic"}
 If (($basicAuthSetting.Value) -eq $false)
