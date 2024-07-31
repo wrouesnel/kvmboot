@@ -455,24 +455,34 @@ atexit rm -f "$xml_def"
 if [ $opt_efi = 1 ]; then
   mkdir -p "$nvram_path"
 
+  log "Configuring EFI code block"
+  case "$arch" in
+    aarch64)
+      log "aarch64 EFI Architecture selected"
+      nvram1='<loader readonly="yes" type="pflash">/usr/share/AAVMF/AAVMF_CODE.fd</loader>'
+    ;;
+    x86_64)
+      log "x86_64 EFI Architecture selected"
+      nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
+    ;;
+  esac
+
   # Check if the image has existing VARs
   if [ -e "${nvram_path}/${image_src}_VARS.fd" ]; then
+    log "Image has existing EFI variables - copying: ${nvram_path}/${image_src}_VARS.fd"
     cp "${nvram_path}/${image_src}_VARS.fd" "${efi_vars_path}"
   else 
+    log "No existing EFI variables. Initializing new ones."
     case "$arch" in
       aarch64)
         cp "/usr/share/AAVMF/AAVMF_VARS.fd" "${efi_vars_path}"
-        nvram1='<loader readonly="yes" type="pflash">/usr/share/AAVMF/AAVMF_CODE.fd</loader>'
       ;;
       x86_64)
         cp "/usr/share/OVMF/OVMF_VARS.fd" "${efi_vars_path}"
-        nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
       ;;
     esac
 
   fi
-
-  
   nvram2="<nvram>${efi_vars_path}</nvram>"
 else
   nvram1=""
