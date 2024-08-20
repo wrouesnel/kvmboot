@@ -1,21 +1,6 @@
 # Ubuntu 24.04 "User" Auto Install
 # This file auto-installs a bare system which then boots to the Gnome Startup page and then Cinnamon Desktop.
-# It pre-configures ZSys, ZFS on root and encryption - everything will be working properly once install finishes.
-# You will however need to change the password on the LUKS key volume.
-# Root unlock can be automated using clevis TPM security:
-#
-# The command: clevis luks bind -d /dev/zvol/rpool/keystore tpm2 '{"pcr_bank":"sha256","pcr_ids":"0,2,3,5,6,7"}'
-#
-# Will *safely* secure your LUKS unlock. If the PCRs change, then you'll be prompted for the password.
-# See https://uapi-group.org/specifications/specs/linux_tpm_pcr_registry/ for TPM values.
-# The list here is currently:
-# 
-# 0 Core system firmware executable code
-# 2 Extended or pluggable executable code; includes option ROMs on pluggable hardware
-# 3 Extended or pluggable firmware data; includes information about pluggable hardware
-# 5 GPT/Partition table
-# 6 ???
-# 7 SecureBoot state
+# This version eschews any advanced storage configuration or encryption - it's for VM usage.
 
 version: 1
 
@@ -33,9 +18,7 @@ proxy: null
 # Install ZFS layout
 storage:
   layout:
-    name: zfs
-    # This must be changed after startup.
-    password: defaultpassword
+    name: direct
 # Install SSH
 ssh:
   install-server: true
@@ -46,19 +29,9 @@ packages:
   - spice-vdagent
   - synaptic
   - apt-xapian-index
-  - zsys
-  - ksmtuned
-  - clevis
-  - clevis-initramfs
-  - clevis-systemd
-  - clevis-luks
-  - clevis-udisks2
-  - clevis-tpm2
 # Timezone
 timezone: Australia/Sydney
 late-commands:
-  # Setup zsys on the system by setting the correct ZFS flags
-  - curtin in-target --target=/target -- bash -c 'zfs set com.ubuntu.zsys:bootfs=yes $(comm -3 <(zfs list -Hp rpool/ROOT) <(zfs list -Hp -d 1 rpool/ROOT) | cut -f2)'
   # Convert the environment to cinnamon
   # We could use cinnamon desktop for this, but let's stick with a "standard" ISO for now.
   - curtin in-target --target=/target -- apt install -y cinnamon-core gnome-initial-setup
