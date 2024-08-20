@@ -501,7 +501,7 @@ if [ $opt_video = 1 ]; then
     </graphics>
     <video>
       <model type="virtio" heads="1" primary="yes">
-        <!-- <acceleration accel3d="yes"/> -->
+        <acceleration accel3d="no"/>
       </model>
     </video>
 EOF
@@ -516,8 +516,8 @@ clock_offset="utc"
 if [ $opt_windows = 1 ]; then
   clock_offset="localtime"
   read -r -d '' video_xml << EOF
-    <graphics type='spice' autoport='yes'>
-      <listen type="address" address="127.0.0.1"/>
+    <graphics type='spice'>
+      <listen type="none"/>
       <image compression='off'/>
     </graphics>
     <video>
