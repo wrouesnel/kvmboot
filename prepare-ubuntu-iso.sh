@@ -146,6 +146,9 @@ if ! ensure_mount "${loop_dev}"; then
 fi
 atexit udisksctl unmount -f -b "${loop_dev}"
 
+# Give the mounts a chance to happen
+sleep 1
+
 # These are the alternate partitions we need to copy
 #grub_partition=
 #efi_partition=""
