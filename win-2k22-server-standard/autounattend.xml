@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+    <settings pass="windowsPE">
+        <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>en-US</InputLocale>
+            <SystemLocale>en-US</SystemLocale>
+            <UILanguage>en-US</UILanguage>
+            <UserLocale>en-US</UserLocale>
+            <UILanguageFallback>en-US</UILanguageFallback>
+        </component>
+        <component name="Microsoft-Windows-PnpCustomizationsWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DriverPaths>
+                <PathAndCredentials wcm:keyValue="1" wcm:action="add">
+                    <Path>X:\Drivers</Path>
+                </PathAndCredentials>
+            </DriverPaths>
+        </component>
+        <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserData>
+                <AcceptEula>true</AcceptEula>
+            </UserData>
+            <ImageInstall>
+                <OSImage>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/NAME</Key>
+                            <Value>Windows Server 2022 SERVERSTANDARD</Value>
+                        </MetaData>
+                    </InstallFrom>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                </OSImage>
+            </ImageInstall>
+            <DiskConfiguration>
+                <WillShowUI>OnError</WillShowUI>
+                <Disk wcm:action="add">
+                    <CreatePartitions>
+                        <CreatePartition wcm:action="add">
+                            <Order>1</Order>
+                            <Size>260</Size>
+                            <Type>EFI</Type>
+                        </CreatePartition>
+                        <CreatePartition wcm:action="add">
+                            <Order>2</Order>
+                            <Size>16</Size>
+                            <Type>MSR</Type>
+                        </CreatePartition>
+                        <CreatePartition wcm:action="add">
+                            <Order>3</Order>
+                            <Size>16384</Size>
+                            <Type>Primary</Type>
+                        </CreatePartition>
+                    </CreatePartitions>
+                    <ModifyPartitions>
+                        <ModifyPartition wcm:action="add">
+                            <Order>1</Order>
+                            <PartitionID>1</PartitionID>
+                            <Label>System</Label>
+                            <Format>FAT32</Format>
+                        </ModifyPartition>
+                        <ModifyPartition wcm:action="add">
+                            <Order>2</Order>
+                            <PartitionID>3</PartitionID>
+                            <Format>NTFS</Format>
+                            <Label>OS</Label>
+                            <Letter>C</Letter>
+                            <Extend>true</Extend>
+                        </ModifyPartition>
+                    </ModifyPartitions>
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
+                </Disk>
+            </DiskConfiguration>
+        </component>
+    </settings>
+    <settings pass="offlineServicing">
+        <component name="Microsoft-Windows-PnpCustomizationsNonWinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DriverPaths>
+                <PathAndCredentials wcm:keyValue="1" wcm:action="add">
+                    <Path>X:\Drivers\virtio\Balloon</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="2" wcm:action="add">
+                    <Path>X:\Drivers\virtio\NetKVM</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="3" wcm:action="add">
+                    <Path>X:\Drivers\virtio\pvpanic</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="4" wcm:action="add">
+                    <Path>X:\Drivers\virtio\qemufwcfg</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="5" wcm:action="add">
+                    <Path>X:\Drivers\virtio\qxldod</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="6" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioinput</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="7" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viorng</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="8" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioscsi</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="9" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioserial</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="10" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viostor</Path>
+                </PathAndCredentials>
+            </DriverPaths>
+        </component>
+    </settings>
+    <settings pass="specialize">
+        <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
+        </component>
+        <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <fDenyTSConnections>false</fDenyTSConnections>
+        </component>
+        <component name="Microsoft-Windows-TerminalServices-RDP-WinStationExtensions" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SecurityLayer>1</SecurityLayer>
+            <UserAuthentication>0</UserAuthentication>
+        </component>
+    </settings>
+    <settings pass="auditUser">
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <RunSynchronous>
+                <!-- Disable the Network Discovery Prompt -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>10</Order>
+                    <Path>reg ADD HKLM\SYSTEM\CurrentControlSet\Control\Network\NewNetworkWindowOff /f</Path>
+                    <Description>Disable network discovery prompt for all users</Description>
+                </RunSynchronousCommand>
+
+                <!-- Set Execution Policy -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>30</Order>
+                    <Path>cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</Path>
+                    <Description>Set Execution Policy 64 Bit</Description>
+                </RunSynchronousCommand>
+
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>40</Order>
+                    <Path>C:\Windows\SysWOW64\cmd.exe /c powershell -Command "Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force"</Path>
+                    <Description>Set Execution Policy 32 Bit</Description>
+                </RunSynchronousCommand>
+
+                <!-- Virtual Machine preferred options -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>44</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\vm.ps1</Path>
+                    <Description>Configure Windows System-Wide Settings</Description>
+                </RunSynchronousCommand>
+
+                <!-- Create a less annoying default shell -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>45</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\ux.ps1</Path>
+                    <Description>Configure Windows UX</Description>
+                </RunSynchronousCommand>
+
+                <!-- Run the virtio-win installer to finish up driver installation -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>50</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\virtio-drivers.ps1</Path>
+                    <Description>Install QEMU guest agent</Description>
+                </RunSynchronousCommand>
+
+                <!-- Enable misc firewall rules -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>60</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\firewall-misc.ps1</Path>
+                    <Description>Miscellaneous Firewall Setup</Description>
+                </RunSynchronousCommand>
+
+                <!-- Setup Windows Remoting over HTTP -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>70</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\winrm-setup.ps1</Path>
+                    <Description>Enable Windows Remoting over HTTPS</Description>
+                </RunSynchronousCommand>
+
+                <!-- Setup Windows Remoting over HTTP -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>80</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\ssh.ps1</Path>
+                    <Description>Enable SSH</Description>
+                </RunSynchronousCommand>
+
+                <!-- Run Windows Update -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>85</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\windows-update.ps1</Path>
+                    <Description>Windows Update</Description>
+                </RunSynchronousCommand>
+
+                <!-- Install Cloudbase-Init and Sysprep -->
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>90</Order>
+                    <Path>cmd.exe /c powershell -File C:\Drivers\scripts\cloudbaseinit.ps1</Path>
+                    <Description>Install cloudbase-init and sysprep</Description>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+        </component>
+    </settings>
+    <!-- oobeSystem -->
+    <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Deployment" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+            xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <Reseal>
+                <Mode>Audit</Mode>
+            </Reseal>
+        </component>
+    </settings>
+</unattend>

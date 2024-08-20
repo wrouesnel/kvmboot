@@ -122,7 +122,7 @@ function libvirt_default_pool() {
 
 # Repacking a Windows ISO for installation
 
-## Windows Server
+## Windows Server 2019
 
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19/virtio 2k19
@@ -149,6 +149,35 @@ Then spawn a cloud image to test with:
 
 ```bash
 ./kvmboot --efi --windows lci.Win2k19-Base.root.qcow2 t1
+```
+
+## Windows Server 2022
+
+```bash
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k22/virtio 2k22
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-2k22/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-2k22/virtio/viostor \
+    --add-drivers generated/virtio-2k22 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-2k22-server-standard/extra \
+    downloaded/SERVER_EVAL_x64FRE_en-us.iso \
+    $(libvirt_default_pool)/win-2k22-Unattended-Virtio.iso \
+    win-2k22-server-standard/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./kvmboot --efi --windows --installer win-2k22-Unattended-Virtio.iso Win2k22-Base
+```
+
+Then spawn a cloud image to test with:
+
+```bash
+./kvmboot --efi --windows lci.Win2k22-Base.root.qcow2 t1
 ```
 
 ## Windows 10 Image
