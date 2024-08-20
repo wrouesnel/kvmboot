@@ -463,7 +463,7 @@ if [ $opt_efi = 1 ]; then
     ;;
     x86_64)
       log "x86_64 EFI Architecture selected"
-      nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.fd</loader>'
+      nvram1='<loader readonly="yes" type="pflash">/usr/share/OVMF/OVMF_CODE_4M.fd</loader>'
     ;;
   esac
 
@@ -478,7 +478,7 @@ if [ $opt_efi = 1 ]; then
         cp "/usr/share/AAVMF/AAVMF_VARS.fd" "${efi_vars_path}"
       ;;
       x86_64)
-        cp "/usr/share/OVMF/OVMF_VARS.fd" "${efi_vars_path}"
+        cp "/usr/share/OVMF/OVMF_VARS_4M.fd" "${efi_vars_path}"
       ;;
     esac
 
