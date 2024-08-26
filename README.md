@@ -67,12 +67,16 @@ This keeps it away from the libvirt bridge interface.
 mkdir /etc/systemd/resolved.conf.d
 cat << EOF > /etc/systemd/resolved.conf.d/libvirt-redirect.conf
 [Resolve]
-DNS=192.168.122.1
-Domains=~default.libvirt
+DNS=192.168.122.1%virbr0#default.libvirt 
 EOF
 
 systemctl restart systemd-resolved
 ```
+
+This configuration defines requests for the DNSMasq libvirt bridge via the sepcial default.libvirt subdomain to be
+routed to dnsmasq by systemd-resolved. This is necessary because that bridge is going to route traffic back to
+systemd-resolved as well.
+
 ## Configure bridge helper
 
 ```bash
