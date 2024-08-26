@@ -127,8 +127,7 @@ function libvirt_default_pool() {
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k19/virtio 2k19
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-2k19/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-2k19/virtio/viostor \
+    --add-boot-drivers generated/virtio-2k19 \
     --add-drivers generated/virtio-2k19 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -156,8 +155,7 @@ Then spawn a cloud image to test with:
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-2k22/virtio 2k22
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-2k22/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-2k22/virtio/viostor \
+    --add-boot-drivers generated/virtio-2k22 \
     --add-drivers generated/virtio-2k22 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -184,8 +182,7 @@ Then spawn a cloud image to test with:
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-boot-drivers generated/virtio-w10 \
     --add-drivers generated/virtio-w10 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -212,8 +209,7 @@ Then spawn a cloud image to test with:
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-boot-drivers generated/virtio-w10 \
     --add-drivers generated/virtio-w10 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -244,8 +240,7 @@ provisions once the user sets up an account.
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-boot-drivers generated/virtio-w10 \
     --add-drivers generated/virtio-w10 \
     --add-drivers win-common/extra \
     --add-drivers win-10-user/extra \
@@ -257,6 +252,12 @@ provisions once the user sets up an account.
 The image that comes up should be able to be SSH'd into Powershell using your default SSH
 key. The user will have your name but be administrator.
 
+Then launch to install the base image:
+
+```bash
+./kvmboot --efi --windows --installer win-10-unattended-virtio-user.iso win10-user
+```
+
 ## Windows 11 User Machine
 
 This version skips the cloudbase-init step, and leaves you with an image which
@@ -265,8 +266,7 @@ provisions once the user sets up an account.
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w11/virtio w11
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w11/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w11/virtio/viostor \
+    --add-boot-drivers generated/virtio-w11 \
     --add-drivers generated/virtio-w11 \
     --add-drivers win-common/extra \
     --add-drivers win-11-user/extra \
@@ -289,8 +289,7 @@ Then launch to install the base image:
 ```bash
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w7/virtio w7
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w7/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w7/virtio/viostor \
+    --add-boot-drivers generated/virtio-w7 \
     --add-drivers generated/virtio-w7 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -323,11 +322,12 @@ Then spawn a cloud image to test with:
 Very similar to Windows 7:
 
 ```bash
-# This is not a typo! The Windows 10 drivers will work, but the Windows 8.1 ones will not
+# This isn't a typo - to get Win 8 to install, we need to load the Win 7 drivers for storage.
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w7/virtio w7
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-boot-drivers generated/virtio-w7 \
+    --add-drivers generated/virtio-w10 \
     --add-drivers generated/virtio-w10 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -347,10 +347,10 @@ Then launch to install the base image:
 # Windows 8 User Image
 
 ```
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w7/virtio w7
 ./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
 ./prepare-windows-iso \
-    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
-    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-boot-drivers generated/virtio-w7 \
     --add-drivers generated/virtio-w10 \
     --add-drivers downloaded/cloudbase-init \
     --add-drivers win-common/extra \
@@ -364,7 +364,7 @@ Then launch to install the base image:
 Then launch to install the base image:
 
 ```bash
-./kvmboot --efi --windows --installer win-8-unattended-virtio-image-updated.iso win8-base
+./kvmboot --efi --windows --installer win-8-unattended-virtio-user-updated.iso win8-user
 ```
 
 ## Ubuntu 24.04 Image

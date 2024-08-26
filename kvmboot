@@ -543,6 +543,19 @@ EOF
 fi
 
 # Default CPU config
+cpu_cores=$((opt_cpus / 2))
+if [ $cpu_cores = 0 ]; then
+  log "CPU cores became 0 - forcing to 1"
+  cpu_cores=1
+fi
+
+cpu_threads=2
+if [ $((opt_cpus / 2)) = 0 ]; then
+  cpu_threads=1
+fi
+
+log "Set CPU topology: ${cpu_cores} cores with ${cpu_threads} threads"
+
 cpu_xml=""
 read -r -d '' cpu_xml << EOF
   <os>
@@ -552,7 +565,7 @@ read -r -d '' cpu_xml << EOF
   </os>
   <cpu mode="custom" match="exact" check="none">
     <model fallback="allow">EPYC</model>
-    <topology sockets="1" dies="1" cores="$((opt_cpus / 2))" threads="2"/>
+    <topology sockets="1" dies="1" cores="${cpu_cores}" threads="${cpu_threads}"/>
     <feature policy='require' name='topoext'/>
   </cpu>
 EOF

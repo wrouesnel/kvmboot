@@ -15,7 +15,43 @@
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <DriverPaths>
                 <PathAndCredentials wcm:keyValue="1" wcm:action="add">
-                    <Path>X:\Drivers</Path>
+                    <Path>X:\Drivers\virtio\Balloon</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="2" wcm:action="add">
+                    <Path>X:\Drivers\virtio\fwcfg</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="3" wcm:action="add">
+                    <Path>X:\Drivers\virtio\NetKVM</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="4" wcm:action="add">
+                    <Path>X:\Drivers\virtio\pvpanic</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="5" wcm:action="add">
+                    <Path>X:\Drivers\virtio\qemufwcfg</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="6" wcm:action="add">
+                    <Path>X:\Drivers\virtio\qxldod</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="7" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viofs</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="8" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viogpudo</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="9" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioinput</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="10" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viorng</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="11" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioscsi</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="12" wcm:action="add">
+                    <Path>X:\Drivers\virtio\vioserial</Path>
+                </PathAndCredentials>
+                <PathAndCredentials wcm:keyValue="13" wcm:action="add">
+                    <Path>X:\Drivers\virtio\viostor</Path>
                 </PathAndCredentials>
             </DriverPaths>
         </component>

@@ -128,7 +128,7 @@ if [ -z "$unattend_xml_file" ]; then
 fi
 
 log "Setup temporary working directories"
-work_dir="$(mktemp -d prepare-windows-iso.XXXXXXXXXX)"
+work_dir="$(mktemp -d -t prepare-windows-iso.XXXXXXXXXX)"
 if [ -z "$work_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
@@ -171,7 +171,7 @@ fi
 editable_install_wim="${work_dir}/sources/install.wim"
 editable_boot_wim="${work_dir}/sources/boot.wim"
 
-bootwim_mnt_dir="$(mktemp -d prepare-windows-iso.bootwim.XXXXXXXXXX)"
+bootwim_mnt_dir="$(mktemp -d -t prepare-windows-iso.bootwim.XXXXXXXXXX)"
 if [ -z "$bootwim_mnt_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
@@ -211,7 +211,7 @@ for i in $(seq 1 ${bootwim_image_count}); do
     fi
 done
 
-wim_mnt_dir="$(mktemp -d prepare-windows-iso.wim.XXXXXXXXXX)"
+wim_mnt_dir="$(mktemp -d -t prepare-windows-iso.wim.XXXXXXXXXX)"
 if [ -z "$wim_mnt_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
@@ -262,13 +262,17 @@ if ! rm -f "${work_dir}/boot/bootfix.bin" ; then
     fatal 1 "Error removing boot keyboard prompt"
 fi
 
+log "Removing EFI boot prompt"
 if ! cp -f "${work_dir}/efi/microsoft/boot/efisys_noprompt.bin" "${work_dir}/efi/microsoft/boot/efisys.bin"; then
     fatal 1 "Error removng EFI boot prompt"
 fi
 
+log "Removing CD boot prompt"
 if ! cp -f "${work_dir}/efi/microsoft/boot/cdboot_noprompt.efi" "${work_dir}/efi/microsoft/boot/cdboot.efi"; then
     fatal 1 "Error removng CD boot prompt"
 fi
+
+sleep 1
 
 log "Rebuild the ISO"
 if ! xorriso -as mkisofs \
