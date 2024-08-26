@@ -318,6 +318,55 @@ Then spawn a cloud image to test with:
 ./kvmboot --efi --windows lci.win7-base.root.qcow2 t1
 ```
 
+## Windows 8 Image
+
+Very similar to Windows 7:
+
+```bash
+# This is not a typo! The Windows 10 drivers will work, but the Windows 8.1 ones will not
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-drivers generated/virtio-w10 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-8-image/extra \
+    downloaded/en_windows_8_1_x64_dvd_2707217.iso \
+    $(libvirt_default_pool)/win-8-unattended-virtio-image-updated.iso \
+    win-8-image/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./kvmboot --efi --windows --installer win-8-unattended-virtio-image-updated.iso win8-base
+```
+
+# Windows 8 User Image
+
+```
+./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w10/virtio w10
+./prepare-windows-iso \
+    --add-boot-drivers generated/virtio-w10/virtio/vioscsi \
+    --add-boot-drivers generated/virtio-w10/virtio/viostor \
+    --add-drivers generated/virtio-w10 \
+    --add-drivers downloaded/cloudbase-init \
+    --add-drivers win-common/extra \
+    --add-drivers win-common/cloudbase \
+    --add-drivers win-8-user/extra \
+    downloaded/en_windows_8_1_x64_dvd_2707217.iso \
+    $(libvirt_default_pool)/win-8-unattended-virtio-user-updated.iso \
+    win-8-user/autounattend.xml
+```
+
+Then launch to install the base image:
+
+```bash
+./kvmboot --efi --windows --installer win-8-unattended-virtio-image-updated.iso win8-base
+```
+
 ## Ubuntu 24.04 Image
 
 Run the following to build an autoinstalling Ubuntu 24.04 image. The reason to do this over using the cloud-init

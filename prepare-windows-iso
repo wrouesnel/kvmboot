@@ -40,6 +40,29 @@ function containsElement () {
   return 1
 }
 
+# Check if the given loop device is mounted by udevctl
+# Usage: is_mounted <loop_dev>
+function is_mounted() {
+  local loop_dev="$1"
+  declare -a mountpoints
+  mapfile -t mountpoints < <(udisksctl info -b "${loop_dev}" | tr -s ' ' | cut -d' ' -f2- | sed -n -e '/Mountpoints:/,/*:/p' | head -n-1 | sed 's/Mountpoints: //')
+  if [ ${#mountpoints[mountpoints]} = 0 ]; then
+    return 1
+  fi
+  return 0
+}
+
+# Ensure a loop device is mounted
+# Usage: is_mounted <loop_dev>
+function ensure_mount() {
+  local loop_dev="$1"
+  log "Ensuring udisks mount for: $loop_dev"
+  if ! is_mounted "${loop_dev}"; then
+    udisksctl mount -b "${loop_dev}" 1>/dev/null 2>&1
+  fi
+  return 0
+}
+
 # Collect optional arguments
 bootdrivers_dir=()
 drivers_dir=()
@@ -105,7 +128,7 @@ if [ -z "$unattend_xml_file" ]; then
 fi
 
 log "Setup temporary working directories"
-work_dir=$(mktemp -d)
+work_dir="$(mktemp -d prepare-windows-iso.XXXXXXXXXX)"
 if [ -z "$work_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
@@ -120,16 +143,21 @@ log "Cut the string to get the /dev/loopX part"
 loop_dev="${loop_dev##* }"
 loop_dev="${loop_dev%%.*}"
 
-atexit udisksctl loop-delete -b "${loop_dev}"
+# Happens automatically if you delay and wait for the mount (see sleep below)
+#atexit udisksctl loop-delete -b "${loop_dev}"
 
-log "Ensure a mount happens"
-udisksctl mount -b "${loop_dev}" 1>/dev/null 2>&1
-atexit udisksctl unmount -b "${loop_dev}"
+log "Ensure a mount happens: ${loop_dev}"
+sleep 1
+if ! ensure_mount "${loop_dev}"; then
+  fatal 1 "Failed to ensure mount for ${loop_dev}"
+fi
+atexit udisksctl unmount -f -b "${loop_dev}"
 
 log "Find the mount path"
 if ! mnt_dir="$(udisksctl info -b "${loop_dev}" | tr -s ' ' | cut -d' ' -f2- | grep 'MountPoints' | cut -d' ' -f2)"; then
     fatal 1 "Could not find the mount path"
 fi
+log "Mount Path Found: ${mnt_dir}"
 
 log "Copy the install.wim to directory for editing."
 if ! mkdir -p "${work_dir}/sources"; then
@@ -143,7 +171,7 @@ fi
 editable_install_wim="${work_dir}/sources/install.wim"
 editable_boot_wim="${work_dir}/sources/boot.wim"
 
-bootwim_mnt_dir=$(mktemp -d)
+bootwim_mnt_dir="$(mktemp -d prepare-windows-iso.bootwim.XXXXXXXXXX)"
 if [ -z "$bootwim_mnt_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
@@ -176,19 +204,21 @@ for i in $(seq 1 ${bootwim_image_count}); do
         done
     fi
 
+    sleep 1
+
     if ! wimunmount --commit "${bootwim_mnt_dir}/$i"; then
         fatal 1 "ERROR: failed unmounting WIM image ${bootwim_mnt_dir}/$i"
     fi
 done
 
-wim_mnt_dir=$(mktemp -d)
+wim_mnt_dir="$(mktemp -d prepare-windows-iso.wim.XXXXXXXXXX)"
 if [ -z "$wim_mnt_dir" ]; then
     fatal 1 "Error creating temporary directory"
 fi
 atexit rmdir "${wim_mnt_dir}"
 
 log "Collect install.wim info."
-if ! wim_image_count="$(wiminfo ${work_dir}/sources/install.wim | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
+if ! wim_image_count="$(wiminfo "${work_dir}/sources/install.wim" | grep 'Image Count' | tr -s ' ' | cut -d' ' -f3)" ; then
     fatal 1 "Could not determine number of images in the wimfile"
 fi
 
@@ -213,12 +243,12 @@ for i in $(seq 1 ${wim_image_count}); do
         done
     fi
 
+    sleep 1
+
     if ! wimunmount --commit "${wim_mnt_dir}/$i"; then
         fatal 1 "ERROR: failed unmounting WIM image ${wim_mnt_dir}/$i"
     fi
 done
-
-
 
 log "Copy unattend to autounattend.xml"
 if [ -n "$unattend_xml_file" ]; then
