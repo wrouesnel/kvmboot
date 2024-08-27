@@ -32,6 +32,14 @@ function fatal() {
   exit "$exit_code"
 }
 
+function containsElement () {
+  local e match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+
+
 # Check if the given loop device is mounted by udevctl
 # Usage: is_mounted <loop_dev>
 function is_mounted() {
@@ -108,8 +116,8 @@ if [ -z "$dest_device" ]; then
     fatal 1 "Need an destination device"
 fi
 
-if [ -z "${usb_devices[$dest_device]}" ]; then
-    fatal 1 "Not a USB device"
+if ! containsElement "$dest_device" "${usb_devices[@]}" ; then
+    fatal 1 "Not a USB device - did you mistype? ${dest_device}"
 fi
 
 orig_dest_device="${dest_device}"
@@ -120,11 +128,11 @@ log "About to write to: ${orig_dest_device} (${dest_device})"
 sleep 3
 
 # Kill the 4M front and back on the disk
-if ! sudo dd if=/dev/zero "of=${dest_device}" bs=1M count=4; then
+if ! sudo dd if=/dev/zero "of=${dest_device}" bs=1M count=4 oflag=direct; then
     fatal 1 "Error while cleaning up partition info on target device: ${dest_device}"
 fi
 
-if ! sudo dd if=/dev/zero "of=${dest_device}" bs=512 count=2048 seek=$(($(sudo blockdev --getsz "${dest_device}") - 2048 )); then
+if ! sudo dd if=/dev/zero "of=${dest_device}" bs=512 count=8192 seek=$(($(sudo blockdev --getsz "${dest_device}") - 8192 )) oflag=direct; then
     fatal 1 "Error while cleaning up partition info on target device: ${dest_device}"
 fi
 
