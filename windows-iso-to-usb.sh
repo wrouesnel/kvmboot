@@ -136,31 +136,56 @@ if ! sudo dd if=/dev/zero "of=${dest_device}" bs=512 count=8192 seek=$(($(sudo b
     fatal 1 "Error while cleaning up partition info on target device: ${dest_device}"
 fi
 
-if ! sudo sgdisk -Z -n 0:0:0 -t 0:ef00 "${dest_device}"; then
+if ! sudo sgdisk -Z -n 1:0:0 -t 1:EF00 "${dest_device}"; then
     fatal 1 "Failed to partition ${dest_device}"
 fi
 
+# if ! sudo sgdisk -Z -n 1:0:-2M -n 2:0:0 -t 1:0700 -t 2:EF00 "${dest_device}"; then
+#     fatal 1 "Failed to partition ${dest_device}"
+# fi
+
 # Searching for mountpoints
+efi_partition=
 windows_partition=
+windows_partition_sz=0
 mapfile -t partition_objects < <(udisksctl info -b "${dest_device}" | tr -s ' ' | cut -d' ' -f2- | sed -n -e '/Partitions:/,/*:/p' | head -n-1 | sed 's/Partitions: //')
 for partition_path in "${partition_objects[@]}"; do
     # You would expect the -p object paths to be what we have here, but they don't work when you look them in udisksctl.
     # The pattern does however keep loop names, which is good enough for us.
     partition_path="/dev/${partition_path##*/}"
 
-    log "Creating filesystem on partition ${partition_path}"
-
-    if ! sudo mkfs.vfat -n "WINSETUP" "${partition_path}"; then
-        fatal 1 "Failed to create Windows partition on USB key"
+    # Check partition size to select a candidate
+    _partition_size=$(sudo blockdev --getsz "${partition_path}")
+    if [ "$_partition_size" -gt $windows_partition_sz ]; then
+      efi_partition="$windows_partition"
+      windows_partition="${partition_path}"
+    elif [ -z "$efi_partition" ]; then
+      efi_partition="$partition_path"
     fi
-
-    windows_partition="${partition_path}"
-    break
 done
 
 if [ -z "${windows_partition}" ]; then
     fatal 1 "Could not find any partitions on the USB key"
 fi
+
+log "Creating filesystem on partition ${windows_partition}"
+
+if ! sudo mkfs.vfat -F32 -n "SETUP" "${windows_partition}"; then
+    fatal 1 "Failed to create Windows partition on USB key"
+fi
+
+# if ! sudo mkfs.ntfs -QL "WINSETUP" "${windows_partition}"; then
+#     fatal 1 "Failed to create Windows partition on USB key"
+# fi
+
+# if [ -z "${efi_partition}" ]; then
+#     fatal 1 "Could not find a partition for the EFI bootloader on the USB key"
+# fi
+
+# log "Copy Rufus UEFI boot image to partition: ${efi_partition}"
+# if ! sudo dd "if=downloaded/uefi-ntfs.img" "of=${efi_partition}" oflag=direct; then
+#     fatal 1 "Failed to copy the UEFI bootloader partition"
+# fi
 
 sleep 3
 
@@ -209,3 +234,6 @@ log "Copying installation files"
 if ! rsync --fsync -av -W --progress "${iso_mnt_dir}/" "${mnt_dir}/"; then
     fatal 1 "Failed to copy ISO files to USB key"
 fi
+
+log "Forcing filesystem sync"
+sync
