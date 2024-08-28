@@ -50,6 +50,9 @@ opt_password="$($pwgen 20)"
 opt_isopath=""
 opt_cpus=2
 opt_arch="x86_64"
+opt_disk="100G"
+opt_no_image=0
+opt_no_boot=0
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -68,6 +71,10 @@ while [ -n "$1" ] ; do
       shift
       opt_extra_disks="$1"
       ;;
+    --disk)
+      shift
+      opt_disk="$1"
+      ;;
     --ram)
       shift
       # Flag the RAM is set
@@ -82,6 +89,15 @@ while [ -n "$1" ] ; do
       # --installer makes a blank disk (100G) and mounts the requested image
       # as an ISO instead.
       opt_installer=1
+      ;;
+    --no-image)
+      # --no-image skips mounting an ISO entirely
+      # as an ISO instead.
+      opt_no_image=1
+      ;;
+    --no-boot)
+      # --no-boot exits immediately after making the VM.
+      opt_no_boot=1
       ;;
     --user)
       shift
@@ -108,8 +124,11 @@ $0 [image src name] [VM name]
   --cpus          Specify number of CPUs (default 2)
   --extra-disks   Specify extra disks to attach as a comma (,) separated list of sizes (i.e. 100G)
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
+  --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
   --installer     Makes a blank disk and mounts the requested image as an ISO instead.
+  --no-image      Do not mount any disk image (valid only with --installer)
+  --no-boot       Do not try and boot the VM just make it.
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
   --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
@@ -153,6 +172,17 @@ if [ -n "$opt_isopath" ]; then
   image_src="ISOPATH"
 fi
 
+if [ $opt_installer = 0 ] && [ $opt_no_image = 1 ]; then
+  fatal 1 "Cannot use --no-image without --installer"
+fi
+
+if [ $opt_installer = 1 ] && [ $opt_no_image = 1 ]; then
+  if [ -z "$image_name" ] && [ ! -z "$image_src" ]; then
+    image_name=$image_src
+    image_src=""
+  fi
+fi
+
 # Convert ram bytes
 # If --video is specified, bump the default to 6G
 if [ $opt_ram_set = 1 ]; then
@@ -164,10 +194,12 @@ if [ -z "$image_name" ]; then
   image_name=lci-"$(dd if=/dev/urandom bs=1 count=6 2>/dev/null | base32 -w0 | cut -d'=' -f1 | tr '[:upper:]' '[:lower:]')"
 fi
 
+# Set disk capacity from option arg
+capacity="$opt_disk"
+
 # Hardcoded defaults
 pool="default"
 root_disk="lci.$image_name.root.qcow2"
-capacity="100G"
 default_user="$opt_user"
 default_password="$opt_password"
 
@@ -340,6 +372,7 @@ if [ $opt_installer = 0 ]; then
     fatal 1 "Could not determine backing image format."
   fi
 
+  log "Create root disk with capacity: $capacity"
   if ! $virsh vol-create-as \
       --pool "$pool"  \
       --name "$root_disk"  \
@@ -351,6 +384,7 @@ if [ $opt_installer = 0 ]; then
   fi
 else
   # Installer mode - make a blank disk.
+  log "Create root disk with capacity: $capacity"
   if ! $virsh vol-create-as \
       --pool "$pool"  \
       --name "$root_disk"  \
@@ -403,14 +437,19 @@ while read vol_entry; do
 done < <($virsh vol-list --pool "$pool")
 
 root_disk_path=${volnameMap[$root_disk]}
-iso_file_path=${volnameMap[$isoname]}
+log "Root disk path: $root_disk_path"
 
-if [ -z "$iso_file_path" ]; then
-  fatal 1 "Failed to set an ISO file."
+iso_file_path=
+if [ $opt_no_image = 0 ]; then
+  iso_file_path=${volnameMap[$isoname]}
+
+  if [ -z "$iso_file_path" ]; then
+    fatal 1 "Failed to set an ISO file."
+  fi
+
+  log "ISO file path: $iso_file_path"
 fi
 
-log "Root disk path: $root_disk_path"
-log "ISO file path: $iso_file_path"
 if [ $opt_efi = 1 ]; then
   nvram_path="$HOME/.local/share/libvirt/qemu/nvram"
   efi_vars_path="${nvram_path}/$(basename "$root_disk_path")_VARS.fd"
@@ -667,6 +706,29 @@ if [ $opt_installer = 1 ]; then
   cd_boot_order_xml='<boot order="2"/>'
 fi
 
+if [ -n "$iso_file_path" ]; then
+log "Attaching ISO file to VM: $iso_file_path"
+read -r -d '' cd_xml << EOF
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw' io='native' cache='none'/>
+      <source file='${iso_file_path}'/>
+      <backingStore/>
+      <target dev='sda' bus='sata'/>
+      ${cd_boot_order_xml}
+    </disk>
+EOF
+else
+log "No ISO file being attached"
+read -r -d '' cd_xml << EOF
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw' io='native' cache='none'/>
+      <backingStore/>
+      <target dev='sda' bus='sata'/>
+      ${cd_boot_order_xml}
+    </disk>
+EOF
+fi
+
 cat << EOF > "$xml_def"
 <domain type='$virt_type'>
   <name>${vm_name}</name>
@@ -700,13 +762,8 @@ cat << EOF > "$xml_def"
       <target dev='vda' bus='virtio'/>
       ${root_boot_order_xml}
     </disk>
-    <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw' io='native' cache='none'/>
-      <source file='${iso_file_path}'/>
-      <backingStore/>
-      <target dev='sda' bus='sata'/>
-      ${cd_boot_order_xml}
-    </disk>
+    
+    $cd_xml
 
     $disk_xml
 
@@ -755,8 +812,13 @@ disks_in_use=1
 vm_created=1 
 log "Virtual machine created as: ${vm_name}"
 
-if ! $virsh start "${vm_name}" 1>&2 ; then
-  fatal 1 "Failed to start the new virtual machine"
+if [ $opt_no_boot = 1 ]; then
+  log "Not booting VM by user request."
+  exit 0
+else
+  if ! $virsh start "${vm_name}" 1>&2 ; then
+    fatal 1 "Failed to start the new virtual machine"
+  fi
 fi
 
 if [ $opt_installer = 1 ]; then
