@@ -61,20 +61,22 @@
             <DiskConfiguration>
                 <WillShowUI>OnError</WillShowUI>
                 <Disk wcm:action="add">
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
                     <CreatePartitions>
                         <CreatePartition wcm:action="add">
                             <Order>1</Order>
-                            <Size>260</Size>
+                            <Size>1024</Size>
                             <Type>EFI</Type>
                         </CreatePartition>
                         <CreatePartition wcm:action="add">
                             <Order>2</Order>
-                            <Size>16</Size>
+                            <Size>128</Size>
                             <Type>MSR</Type>
                         </CreatePartition>
                         <CreatePartition wcm:action="add">
                             <Order>3</Order>
-                            <Size>16384</Size>
+                            <Extend>true</Extend> 
                             <Type>Primary</Type>
                         </CreatePartition>
                     </CreatePartitions>
@@ -89,13 +91,10 @@
                             <Order>2</Order>
                             <PartitionID>3</PartitionID>
                             <Format>NTFS</Format>
-                            <Label>OS</Label>
+                            <Label>Windows</Label>
                             <Letter>C</Letter>
-                            <Extend>true</Extend>
                         </ModifyPartition>
                     </ModifyPartitions>
-                    <DiskID>0</DiskID>
-                    <WillWipeDisk>true</WillWipeDisk>
                 </Disk>
             </DiskConfiguration>
             <UserData>
