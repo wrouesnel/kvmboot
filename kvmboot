@@ -458,6 +458,7 @@ log "User Login: $default_user"
 
 declare -A volnameMap
 declare -A srcVolnameMap
+declare -A cfgVolnameMap
 
 while read vol_entry; do
   vol_name=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)
@@ -471,15 +472,27 @@ while read vol_entry; do
   srcVolnameMap["$vol_name"]="$vol_path"
 done < <($virsh vol-list --pool "$opt_src_pool")
 
+while read vol_entry; do
+  vol_name=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)
+  vol_path=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+  cfgVolnameMap["$vol_name"]="$vol_path"
+done < <($virsh vol-list --pool "$opt_cfg_pool")
+
 root_disk_path=${volnameMap[$root_disk]}
 log "Root disk path: $root_disk_path"
 
 iso_file_path=
 if [ $opt_no_image = 0 ]; then
-  iso_file_path=${srcVolnameMap[$isoname]}
+  if [ $opt_installer = 0 ]; then
+    # Default mode - use cfg path
+    iso_file_path=${cfgVolnameMap[$isoname]}
+  else 
+    # Installer mode - use src path
+    iso_file_path=${srcVolnameMap[$isoname]}
+  fi
 
   if [ -z "$iso_file_path" ]; then
-    fatal 1 "Failed to set an ISO file (using $opt_src_pool pool)"
+    fatal 1 "Failed to set an ISO file"
   fi
 
   log "ISO file path: $iso_file_path"
