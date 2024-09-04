@@ -38,6 +38,9 @@ pwgen="$(command -v pwgen)"
 _default_ram="4G"
 _default_ram_for_video="6G"
 
+# Default libvirt pool
+_default_pool="default"
+
 opt_efi=0
 opt_video=0
 opt_extra_disks=
@@ -53,6 +56,9 @@ opt_arch="x86_64"
 opt_disk="100G"
 opt_no_image=0
 opt_no_boot=0
+opt_dst_pool="$_default_pool"
+opt_src_pool="$_default_pool"
+opt_cfg_pool="$_default_pool"
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -115,6 +121,18 @@ while [ -n "$1" ] ; do
       shift
       opt_arch="$1"
       ;;
+    --dst-pool)
+      shift
+      opt_dst_pool="$1"
+      ;;
+    --src-pool)
+      shift
+      opt_src_pool="$1"
+      ;;
+    --init-pool)
+      shift
+      opt_cfg_pool="$1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -133,6 +151,9 @@ $0 [image src name] [VM name]
   --password      Password of the new user to create in the image
   --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
   --arch          Specify the architecture (x86_64 or arm64)
+  --dst-pool      Specify the output pool for disk images
+  --src-pool      Specify the pool for source images
+  --cfg-pool      Specify the pool for cloud-init data
   --help          Display this help text.
 
 EOF
@@ -198,7 +219,6 @@ fi
 capacity="$opt_disk"
 
 # Hardcoded defaults
-pool="default"
 root_disk="lci.$image_name.root.qcow2"
 default_user="$opt_user"
 default_password="$opt_password"
@@ -226,7 +246,15 @@ fi
 echo "$ssh_authorized_key"
 
 # Refresh storage pool before going further
-$virsh pool-refresh "$pool" 1> /dev/null 2>&1
+if ! $virsh pool-refresh "$opt_dst_pool" 1> /dev/null 2>&1 ; then
+  fatal 1 "Could not refresh destination pool: $opt_dst_pool"
+fi
+if $virsh pool-refresh "$opt_src_pool" 1> /dev/null 2>&1 ; then
+  fatal 1 "Could not refresh source pool: $opt_src_pool"
+fi
+if $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
+  fatal 1 "Could not refresh config pool: $opt_cfg_pool"
+fi
 
 if [ $opt_installer = 0 ]; then
   prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
@@ -322,20 +350,20 @@ EOF
     fatal 1 "Could not stat $isopath"
   fi
 
-  if ! $virsh vol-create-as --pool "$pool" --name "$isoname" --format raw --capacity "$isosize" 1>&2 ; then
-    fatal 1 "Could not create ISO volume in libvirt pool"
+  if ! $virsh vol-create-as --pool "$opt_cfg_pool" --name "$isoname" --format raw --capacity "$isosize" 1>&2 ; then
+    fatal 1 "Could not create ISO volume in $opt_cfg_pool pool"
   fi
 
   # Upload to volume
-  if ! $virsh vol-upload --pool "$pool" --offset 0 --length "$isosize" "$isoname" "$isopath" 1>&2 ; then
-    $virsh vol-delete --pool "$pool" "$isoname" || log "Failed to delete $isoname. Please delete manually."
+  if ! $virsh vol-upload --pool "$opt_cfg_pool" --offset 0 --length "$isosize" "$isoname" "$isopath" 1>&2 ; then
+    $virsh vol-delete --pool "$opt_cfg_pool" "$isoname" || log "Failed to delete $isoname. Please delete manually."
     fatal 1 "Could not upload to ISO volume"
     
   fi
 
   # Set an exit handler to destory the image if creation fails.
   vm_created=0
-  atexit "[ \${vm_created} = 0 ] && ( $virsh vol-delete --pool "$pool" "$isoname" )"
+  atexit "[ \${vm_created} = 0 ] && ( $virsh vol-delete --pool "$opt_cfg_pool" "$isoname" )"
 
 else
   # In installer mode, the isoname becomes the image src name
@@ -356,7 +384,7 @@ if [ $opt_installer = 0 ]; then
       backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
       break
     fi
-  done < <($virsh vol-list --pool "$pool")
+  done < <($virsh vol-list --pool "$opt_src_pool")
 
   if [ -z "$backing_vol" ]; then
     fatal 1 "Volume $image_src could not be located in the default pool."
@@ -374,7 +402,7 @@ if [ $opt_installer = 0 ]; then
 
   log "Create root disk with capacity: $capacity"
   if ! $virsh vol-create-as \
-      --pool "$pool"  \
+      --pool "$opt_dst_pool"  \
       --name "$root_disk"  \
       --format qcow2  \
       --backing-vol "$backing_vol"  \
@@ -386,7 +414,7 @@ else
   # Installer mode - make a blank disk.
   log "Create root disk with capacity: $capacity"
   if ! $virsh vol-create-as \
-      --pool "$pool"  \
+      --pool "$opt_dst_pool"  \
       --name "$root_disk"  \
       --format qcow2  \
       --capacity "$capacity" \
@@ -394,7 +422,7 @@ else
     fatal 1 "Could not create machine attached volume."
   fi
 fi
-atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$pool" "$root_disk" )"
+atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$opt_dst_pool" "$root_disk" )"
 
 extra_disks=()
 if [ ! -z "$opt_extra_disks" ]; then
@@ -405,7 +433,7 @@ if [ ! -z "$opt_extra_disks" ]; then
 
     extra_disk_path="lci.$image_name.disk-${i}.qcow2"
     if ! $virsh vol-create-as \
-      --pool "$pool" \
+      --pool "$opt_dst_pool" \
       --name "${extra_disk_path}" \
       --format qcow2 \
       --capacity "$diskspec" \
@@ -413,7 +441,7 @@ if [ ! -z "$opt_extra_disks" ]; then
       --prealloc-metadata 1>&2 ; then
       disk_failure=1
     fi
-    atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$pool" "$extra_disk_path" )"
+    atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$opt_dst_pool" "$extra_disk_path" )"
     extra_disks+=( "${extra_disk_path}" )
 
   done < <(echo "$opt_extra_disks" | tr ',' '\n')
@@ -429,22 +457,29 @@ log "User Login: $default_user"
 # Setup the VM
 
 declare -A volnameMap
+declare -A srcVolnameMap
 
 while read vol_entry; do
   vol_name=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)
   vol_path=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
   volnameMap["$vol_name"]="$vol_path"
-done < <($virsh vol-list --pool "$pool")
+done < <($virsh vol-list --pool "$opt_dst_pool")
+
+while read vol_entry; do
+  vol_name=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)
+  vol_path=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+  srcVolnameMap["$vol_name"]="$vol_path"
+done < <($virsh vol-list --pool "$opt_src_pool")
 
 root_disk_path=${volnameMap[$root_disk]}
 log "Root disk path: $root_disk_path"
 
 iso_file_path=
 if [ $opt_no_image = 0 ]; then
-  iso_file_path=${volnameMap[$isoname]}
+  iso_file_path=${srcVolnameMap[$isoname]}
 
   if [ -z "$iso_file_path" ]; then
-    fatal 1 "Failed to set an ISO file."
+    fatal 1 "Failed to set an ISO file (using $opt_src_pool pool)"
   fi
 
   log "ISO file path: $iso_file_path"
