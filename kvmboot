@@ -30,7 +30,17 @@ function _atexit_handler() {
 
 trap _atexit_handler EXIT
 
-virsh="$(command -v virsh) -q --connect=qemu:///session"
+if [ -n "${VIRSH_DEFAULT_CONNECT_URI}" ]; then
+  if [ $EUID -eq 0 ]; then
+    log "Running as root: using system daemon"
+    default_connect="qemu:///system"
+  else
+    log "Running as user: using session daemon"
+    default_connect="qemu:///session"
+  fi
+fi
+
+virsh="$(command -v virsh) -q --connect=${VIRSH_DEFAULT_CONNECT_URI:-$default_connect}"
 qemuimg="$(command -v qemu-img)"
 secrettool="$(command -v secret-tool)"
 pwgen="$(command -v pwgen)"
@@ -225,38 +235,41 @@ default_password="$opt_password"
 
 timezone="$(timedatectl show -p Timezone | cut -d'=' -f2-)"
 
-ssh_key_path=$HOME/.ssh/id_rsa
-
-get_pass_script=$(mktemp)
-chmod +x "$get_pass_script"
-cat > "$get_pass_script" << EOF
-#!/bin/bash
-$secrettool lookup unique ssh-store:$ssh_key_path
-EOF
-
-export SSH_ASKPASS="$get_pass_script"
-
-atexit rm -f "$get_pass_script"
-
-ssh_authorized_key=$(echo "" | ssh-keygen -y -f "$ssh_key_path")
-if [ $? != 0 ]; then
-  exit 1
-fi
-
-echo "$ssh_authorized_key"
-
 # Refresh storage pool before going further
 if ! $virsh pool-refresh "$opt_dst_pool" 1> /dev/null 2>&1 ; then
   fatal 1 "Could not refresh destination pool: $opt_dst_pool"
 fi
-if $virsh pool-refresh "$opt_src_pool" 1> /dev/null 2>&1 ; then
+if ! $virsh pool-refresh "$opt_src_pool" 1> /dev/null 2>&1 ; then
   fatal 1 "Could not refresh source pool: $opt_src_pool"
 fi
-if $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
+if ! $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
   fatal 1 "Could not refresh config pool: $opt_cfg_pool"
 fi
 
 if [ $opt_installer = 0 ]; then
+  # Get SSH keys for local installer
+  ssh_key_path=$HOME/.ssh/id_rsa
+
+  get_pass_script=$(mktemp)
+  chmod +x "$get_pass_script"
+  cat > "$get_pass_script" << EOF
+#!/bin/bash
+$secrettool lookup unique ssh-store:$ssh_key_path
+EOF
+
+  export SSH_ASKPASS="$get_pass_script"
+
+  atexit rm -f "$get_pass_script"
+
+  ssh_authorized_key=$(echo "" | ssh-keygen -y -f "$ssh_key_path")
+  if [ $? != 0 ]; then
+    exit 1
+  fi
+
+  echo "$ssh_authorized_key"
+  # Finish SSH key discovery
+
+
   prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
   if [ $? != 0 ]; then
     fatal 1 "Failed to create temporary directory"
@@ -498,8 +511,13 @@ if [ $opt_no_image = 0 ]; then
   log "ISO file path: $iso_file_path"
 fi
 
+libvirt_root=/var/lib/libvirt
+if [ "$($virsh uri)" = "qemu:///session" ]; then
+  libvirt_root="$HOME/.local/share/libvirt"
+fi
+
 if [ $opt_efi = 1 ]; then
-  nvram_path="$HOME/.local/share/libvirt/qemu/nvram"
+  nvram_path="${libvirt_root}/qemu/nvram"
   efi_vars_path="${nvram_path}/$(basename "$root_disk_path")_VARS.fd"
   log "EFI vars path: ${efi_vars_path}"
 fi
