@@ -288,7 +288,9 @@ if [ $opt_installer = 0 ]; then
   if [ $opt_no_ssh_inject = 0 ]; then
     if [ -z "${opt_ssh_pubkey_file}" ]; then
       log "Attempting to get SSH public key from user's private key (pass --no-ssh-inject to disable entirely)"
-      ssh_authorized_key=$(get_ssh_public_key "${opt_user}")
+      if ! ssh_authorized_key=$(get_ssh_public_key_for_user "${opt_user}"); then
+        fatal 1 "Failed to get the SSH public key for the given user: ${opt_user}"
+      fi
     else
       log "Loading SSH key from file"
       ssh_authorized_key="$(head -n1 "${opt_ssh_pubkey_file}")"
