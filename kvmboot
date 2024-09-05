@@ -69,6 +69,8 @@ opt_no_boot=0
 opt_dst_pool="$_default_pool"
 opt_src_pool="$_default_pool"
 opt_cfg_pool="$_default_pool"
+opt_ssh_pubkey_file=""
+opt_no_ssh_inject=0
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -143,6 +145,14 @@ while [ -n "$1" ] ; do
       shift
       opt_cfg_pool="$1"
       ;;
+    --ssh-pubkey-file)
+      shift
+      opt_ssh_pubkey_file="$1"
+      ;;
+    --no-ssh-inject)
+      shift
+      opt_no_ssh_inject="1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -164,6 +174,8 @@ $0 [image src name] [VM name]
   --dst-pool      Specify the output pool for disk images
   --src-pool      Specify the pool for source images
   --cfg-pool      Specify the pool for cloud-init data
+  --ssh-pubkey-file Specify the SSH public key file to be injected
+  --no-ssh-inject Disable any injection of an SSH public key
   --help          Display this help text.
 
 EOF
@@ -246,9 +258,12 @@ if ! $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
   fatal 1 "Could not refresh config pool: $opt_cfg_pool"
 fi
 
-if [ $opt_installer = 0 ]; then
-  # Get SSH keys for local installer
-  ssh_key_path=$HOME/.ssh/id_rsa
+function get_ssh_public_key_for_user() {
+  local user="$1"
+
+  local user_home=$(bash -c "cd ~$(printf %q "$user") && pwd")
+
+  ssh_key_path="${user_home}/.ssh/id_rsa"
 
   get_pass_script=$(mktemp)
   chmod +x "$get_pass_script"
@@ -261,21 +276,51 @@ EOF
 
   atexit rm -f "$get_pass_script"
 
-  ssh_authorized_key=$(echo "" | ssh-keygen -y -f "$ssh_key_path")
+  local ssh_authorized_key=$(echo "" | ssh-keygen -y -f "$ssh_key_path")
   if [ $? != 0 ]; then
-    exit 1
+    fatal 1 "Failed to get SSH public key from $ssh_key_path"
   fi
 
   echo "$ssh_authorized_key"
-  # Finish SSH key discovery
+}
 
+if [ $opt_installer = 0 ]; then
+  if [ $opt_no_ssh_inject = 0 ]; then
+    if [ -n "${opt_ssh_pubkey_file}" ]; then
+      log "Attempting to get SSH public key from user's private key (pass --no-ssh-inject to disable entirely)"
+      ssh_authorized_key=$(get_ssh_public_key "${opt_user}")
+    else
+      log "Loading SSH key from file"
+      ssh_authorized_key="$(head -n1 "${opt_ssh_pubkey_file}")"
+    fi
+
+    log "SSH authorized key will be injected: ${ssh_authorized_key}"
+  else
+    log "Not attempting SSH key injection"
+    ssh_authorized_key=""
+  fi
+
+  ssh_key_block1=
+  ssh_key_block2=
+  if [ -n "${ssh_authorized_key}" ]; then
+    read -r -d '' ssh_key_block1 << EOF
+    ,
+      "public_keys": {
+        "default": "${ssh_authorized_key}"
+      }
+EOF
+    read -r -d '' ssh_key_block2 << EOF
+ssh_authorized_keys:
+- ${ssh_authorized_key}
+EOF
+  fi
 
   prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
   if [ $? != 0 ]; then
     fatal 1 "Failed to create temporary directory"
   fi
 
-  if [ -z $prep_dir ]; then
+  if [ -z "$prep_dir" ]; then
     fatal 1 "Got empty directory for $prep_dir"
   fi
 
@@ -299,10 +344,7 @@ EOF
     "admin_username": "$default_user",
     "admin_pass": "$default_password",
     "random_seed": "$(dd if=/dev/urandom bs=512 count=1 2>/dev/null | base64 -w0)"
-  },
-  "public_keys": {
-    "default": "${ssh_authorized_key}"
-  }
+  }${ssh_key_block1}
 }
 EOF
 
@@ -316,8 +358,7 @@ system_info:
   default_user:
     name: "$default_user"
 
-ssh_authorized_keys:
-- ${ssh_authorized_key}
+${ssh_key_block2}
 
 final_message: "launch-cloud-image: SYSTEM READY"
 EOF
