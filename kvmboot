@@ -286,7 +286,7 @@ EOF
 
 if [ $opt_installer = 0 ]; then
   if [ $opt_no_ssh_inject = 0 ]; then
-    if [ -n "${opt_ssh_pubkey_file}" ]; then
+    if [ -z "${opt_ssh_pubkey_file}" ]; then
       log "Attempting to get SSH public key from user's private key (pass --no-ssh-inject to disable entirely)"
       ssh_authorized_key=$(get_ssh_public_key "${opt_user}")
     else
