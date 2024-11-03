@@ -34,9 +34,13 @@ trap _atexit_handler EXIT
 
 # Collect optional arguments
 arch="amd64"
+skip_json=0
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
+    --skip-json)
+      skip_json=1
+      ;;
     --arch)
       shift
       arch="$1"
@@ -84,26 +88,35 @@ if ! fuseiso "$iso_file" "$mnt_dir"; then
     fatal 1 "Could not mount ISO image."
 fi
 
-# Get windows versions
-mapfile -t supported_windows <  <(jq -r '.drivers[].windows_version' "${mnt_dir}/data/info.json" | sort | uniq)
-mapfile -t supported_arch <  <(jq -r '.drivers[].arch' "${mnt_dir}/data/info.json" | sort | uniq)
+if [ $skip_json = 0 ]; then
+  # Get windows versions
+  mapfile -t supported_windows <  <(jq -r '.drivers[].windows_version' "${mnt_dir}/data/info.json" | sort | uniq)
+  mapfile -t supported_arch <  <(jq -r '.drivers[].arch' "${mnt_dir}/data/info.json" | sort | uniq)
 
-if ! containsElement "$windows_version" "${supported_windows[@]}"; then
-    echo "Supported windows is: ${supported_windows[*]}"
-    fatal 1 "$windows_version is not a supported windows version."
+  if ! containsElement "$windows_version" "${supported_windows[@]}"; then
+      echo "Supported windows is: ${supported_windows[*]}"
+      fatal 1 "$windows_version is not a supported windows version."
+  fi
+
+  if ! containsElement "$arch" "${supported_arch[@]}"; then
+      echo "Supported windows is: ${supported_windows[*]}"
+      fatal 1 "$windows_version is not a supported windows version."
+  fi
+
+  # Loop and extract drivers for the given windows version into output_dir
+  while read -r infpath; do
+      driver_dir=$(dirname $infpath)
+      driver_name="${driver_dir%%/*}"
+      rsync -r "${mnt_dir}/$driver_dir/" "${output_dir}/${driver_name}/"
+  done < <(jq -r ".drivers[] | select(.windows_version == \"$windows_version\") | select(.arch == \"$arch\") | .inf_path" "${mnt_dir}/data/info.json")
+else
+  # Do it by dead reckoning
+  while read -r infpath; do
+      driver_dir=$(dirname $infpath)
+      driver_name="${driver_dir%%/*}"
+      rsync -r "${mnt_dir}/${driver_dir}/" "${output_dir}/${driver_name}/"
+  done < <( find "${mnt_dir}" -name '*.inf' -printf "%P\n" | grep -F "$arch" | grep -F "$windows_version" )
 fi
-
-if ! containsElement "$arch" "${supported_arch[@]}"; then
-    echo "Supported windows is: ${supported_windows[*]}"
-    fatal 1 "$windows_version is not a supported windows version."
-fi
-
-# Loop and extract drivers for the given windows version into output_dir
-while read -r infpath; do
-    driver_dir=$(dirname $infpath)
-    driver_name="${driver_dir%%/*}"
-    rsync -r "${mnt_dir}/$driver_dir/" "${output_dir}/${driver_name}/"
-done < <(jq -r ".drivers[] | select(.windows_version == \"$windows_version\") | select(.arch == \"$arch\") | .inf_path" "${mnt_dir}/data/info.json")
 
 # Copy qemu guest agent as well.
 rsync -a "${mnt_dir}/guest-agent" "${output_dir}"

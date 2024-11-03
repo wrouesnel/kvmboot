@@ -291,7 +291,7 @@ Then launch to install the base image:
 ## Windows 7 Image
 
 ```bash
-./prepare-virtio-driver-tree downloaded/virtio-win.iso generated/virtio-w7/virtio w7
+./prepare-virtio-driver-tree --skip-json downloaded/virtio-win-0.1.171.iso generated/virtio-w7/virtio w7
 ./prepare-windows-iso \
     --add-boot-drivers generated/virtio-w7 \
     --add-drivers generated/virtio-w7 \
