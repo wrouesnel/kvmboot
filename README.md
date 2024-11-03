@@ -414,3 +414,7 @@ cd C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf
 
 C:\Windows\System32\sysprep\sysprep.exe /generalize /oobe /unattend:Unattend.xml
 ```
+
+## Intel NUC Drivers for the ANx13 series
+
+* https://dlcdnets.asus.com/pub/ASUS/NUC/NUC_13_Pro_Kit/NUC13AN_LC_non-Vpro_INF_Pack_8_23_2024.zip?model=NUC13ANHi7

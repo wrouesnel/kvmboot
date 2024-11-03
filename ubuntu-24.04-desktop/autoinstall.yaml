@@ -22,7 +22,7 @@ version: 1
 locale: en_AU.UTF-8
 
 refresh-installer:
-  update: true
+  update: false
 
 source:
   search_drivers: true
