@@ -376,7 +376,20 @@ Then launch to install the base image:
 Run the following to build an autoinstalling Ubuntu 24.04 image. The reason to do this over using the cloud-init
 images is to get a ZFS filesystem.
 
+```bash
+./prepare-ubuntu-iso.sh downloaded/ubuntu-24.04-desktop-amd64.iso \
+    $(libvirt_default_pool)/ubuntu-24.04-unattended-virtio-user.iso \
+    ubuntu-24.04-desktop/autoinstall.yaml
+```
 
+Note: the ZFS encryption password is hardcoded as "defaultpassword" and should be changed once you launch
+the image.
+
+Then launch to install:
+
+```bash
+./kvmboot --efi --video --installer ubuntu-24.04-unattended-virtio-user.iso ubuntu-desktop
+```
 
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
