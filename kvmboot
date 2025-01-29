@@ -30,7 +30,7 @@ function _atexit_handler() {
 
 trap _atexit_handler EXIT
 
-if [ -n "${VIRSH_DEFAULT_CONNECT_URI}" ]; then
+if [ -z "${VIRSH_DEFAULT_CONNECT_URI}" ]; then
   if [ $EUID -eq 0 ]; then
     log "Running as root: using system daemon"
     default_connect="qemu:///system"
