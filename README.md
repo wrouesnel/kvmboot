@@ -391,6 +391,19 @@ Then launch to install:
 ./kvmboot --efi --video --installer ubuntu-24.04-unattended-virtio-user.iso ubuntu-desktop
 ```
 
+## Ubuntu Core 24 Image
+
+Convert the image file to qcow2 file if you need to (highly recommend: 3.4GB -> 400mb with compression):
+
+```bash
+qemu-img convert -c -p -O qcow2 $(libvirt_pool Downloads)/ubuntu-core-24-amd64.img \
+    $(libvirt_pool iso)/ubuntu-core-24-amd64.qcow2
+```
+
+```bash
+./kvmboot --efi --video ubuntu-core-24-amd64.qcow2 ubuntu-core
+```
+
 ## Injecting an initial SSH key for Administrator
 This can be done by inserting a file into C:\ProgramData\ssh\administrators_authorized_keys
 
