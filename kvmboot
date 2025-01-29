@@ -71,13 +71,42 @@ opt_src_pool="$_default_pool"
 opt_cfg_pool="$_default_pool"
 opt_ssh_pubkey_file=""
 opt_no_ssh_inject=0
+opt_no_wait=0
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
+    # Flags (no parameter and should not use `shift`)
     --efi)
       opt_efi=1
       ;;
+    --windows)
+      # Setting for windows guests.
+      opt_windows=1
+      ;;
+    --installer)
+      # --installer makes a blank disk (100G) and mounts the requested image
+      # as an ISO instead.
+      opt_installer=1
+      ;;
+    --no-image)
+      # --no-image skips mounting an ISO entirely
+      # as an ISO instead.
+      opt_no_image=1
+      ;;
+    --no-boot)
+      # --no-boot exits immediately after making the VM.
+      opt_no_boot=1
+      ;;
+    --no-ssh-inject)
+      # Skip injecting SSH files
+      opt_no_ssh_inject="1"
+      ;;
+    --no-wait)
+      # Skip waiting for connection
+      opt_no_wait="1"
+      ;;
+    # Arguments which take 1 parameter
     --cpus)
       shift
       opt_cpus="$1"
@@ -98,24 +127,6 @@ while [ -n "$1" ] ; do
       # Flag the RAM is set
       opt_ram_set=0
       opt_ram="$1"
-      ;;
-    --windows)
-      # Setting for windows guests.
-      opt_windows=1
-      ;;
-    --installer)
-      # --installer makes a blank disk (100G) and mounts the requested image
-      # as an ISO instead.
-      opt_installer=1
-      ;;
-    --no-image)
-      # --no-image skips mounting an ISO entirely
-      # as an ISO instead.
-      opt_no_image=1
-      ;;
-    --no-boot)
-      # --no-boot exits immediately after making the VM.
-      opt_no_boot=1
       ;;
     --user)
       shift
@@ -149,10 +160,6 @@ while [ -n "$1" ] ; do
       shift
       opt_ssh_pubkey_file="$1"
       ;;
-    --no-ssh-inject)
-      shift
-      opt_no_ssh_inject="1"
-      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -165,7 +172,7 @@ $0 [image src name] [VM name]
   --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
   --installer     Makes a blank disk and mounts the requested image as an ISO instead.
-  --no-image      Do not mount any disk image (valid only with --installer)
+  --no-image      Do not mount any disk image (use with installer or when doing BOOTSTRAP)
   --no-boot       Do not try and boot the VM just make it.
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
@@ -176,6 +183,7 @@ $0 [image src name] [VM name]
   --cfg-pool      Specify the pool for cloud-init data
   --ssh-pubkey-file Specify the SSH public key file to be injected
   --no-ssh-inject Disable any injection of an SSH public key
+  --no-wait       Do not wait for the image to become network reachable
   --help          Display this help text.
 
 EOF
@@ -204,8 +212,12 @@ case "$opt_arch" in
 esac
 
 # Best effort image source
-image_src="$1"
-shift
+if [ $opt_installer = 0 ] && [ $opt_no_image = 1 ]; then
+  log "Booting without a source image and without installer"
+else
+  image_src="$1"
+  shift
+fi
 
 # Best effort image name
 image_name="$1"
@@ -215,9 +227,9 @@ if [ -n "$opt_isopath" ]; then
   image_src="ISOPATH"
 fi
 
-if [ $opt_installer = 0 ] && [ $opt_no_image = 1 ]; then
-  fatal 1 "Cannot use --no-image without --installer"
-fi
+# if [ $opt_installer = 0 ] && [ $opt_no_image = 1 ]; then
+#   fatal 1 "Cannot use --no-image without --installer"
+# fi
 
 if [ $opt_installer = 1 ] && [ $opt_no_image = 1 ]; then
   if [ -z "$image_name" ] && [ ! -z "$image_src" ]; then
@@ -430,11 +442,11 @@ fi
 disks_in_use=0
 
 # Setup the VM disks
-if [ $opt_installer = 0 ]; then
+if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
   # Get the backing volume.
   backing_vol=""
 
-  while read vol_entry; do
+  while read -r vol_entry; do
     vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
     if [ "$vol_name" = "$image_src" ]; then
       backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
@@ -443,7 +455,7 @@ if [ $opt_installer = 0 ]; then
   done < <($virsh vol-list --pool "$opt_src_pool")
 
   if [ -z "$backing_vol" ]; then
-    fatal 1 "Volume $image_src could not be located in the default pool."
+    fatal 1 "Volume $image_src could not be located in the $opt_src_pool pool."
   fi
 
   if [ ! -e "$backing_vol" ]; then
@@ -497,7 +509,7 @@ if [ ! -z "$opt_extra_disks" ]; then
       --prealloc-metadata 1>&2 ; then
       disk_failure=1
     fi
-    atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool "$opt_dst_pool" "$extra_disk_path" )"
+    atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool \"$opt_dst_pool\" \"$extra_disk_path\" )"
     extra_disks+=( "${extra_disk_path}" )
 
   done < <(echo "$opt_extra_disks" | tr ',' '\n')
@@ -953,37 +965,40 @@ else
   # Write the machine hostname to stdout.
   echo "${vm_dns}" : "$default_user" : "$default_password"
 
-  # Wait for the machine to boot to SSH completion
-  while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
-    sleep 0.5
-  done
-
-  if [ $opt_windows = 0 ]; then
-    while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
+if [ $opt_no_wait = 0 ]; then
+    # Wait for the machine to boot to SSH completion
+    while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
       sleep 0.5
     done
-  else
-    while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
-      sleep 0.5
-    done
+
+    if [ $opt_windows = 0 ]; then
+      while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
+        sleep 0.5
+      done
+    else
+      while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
+        sleep 0.5
+      done
+    fi  
+
+    vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
+    if [ $? != 0 ]; then
+      fatal 1 "VM IP failed to be resolved."
+    fi
+
+    # Inject the new machine into the current users known_hosts and remove any other entries
+    # TODO: hide output except on error.
+    ssh-keygen -R "${vm_dns}" >/dev/null 2>&1
+    ssh-keygen -R "${vm_ip}" >/dev/null 2>&1
+    ssh-keygen -R "${vm_dns},${vm_ip}" >/dev/null 2>&1
+
+    { 
+      ssh-keyscan -H "${vm_dns},${vm_ip}" 2>/dev/null
+      ssh-keyscan -H "${vm_ip}" 2>/dev/null
+      ssh-keyscan -H "${vm_dns}" 2>/dev/null
+    } >> "$HOME/.ssh/known_hosts"
+
   fi
-
-  vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
-  if [ $? != 0 ]; then
-    fatal 1 "VM IP failed to be resolved."
-  fi
-
-  # Inject the new machine into the current users known_hosts and remove any other entries
-  # TODO: hide output except on error.
-  ssh-keygen -R "${vm_dns}" >/dev/null 2>&1
-  ssh-keygen -R "${vm_ip}" >/dev/null 2>&1
-  ssh-keygen -R "${vm_dns},${vm_ip}" >/dev/null 2>&1
-
-  { 
-    ssh-keyscan -H "${vm_dns},${vm_ip}" 2>/dev/null
-    ssh-keyscan -H "${vm_ip}" 2>/dev/null
-    ssh-keyscan -H "${vm_dns}" 2>/dev/null
-  } >> "$HOME/.ssh/known_hosts"
 
   # TODO: Create an ansible-like inventory file entry for the machine.
   # The idea is you just do cat *.inventory > inventory to build something to work with.
