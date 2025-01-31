@@ -72,11 +72,16 @@ opt_cfg_pool="$_default_pool"
 opt_ssh_pubkey_file=""
 opt_no_ssh_inject=0
 opt_no_wait=0
+opt_no_cloud_init=0
+opt_print_xml=0
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
     case $arg in
     # Flags (no parameter and should not use `shift`)
+    --video)
+      opt_video=1
+      ;;
     --efi)
       opt_efi=1
       ;;
@@ -106,13 +111,22 @@ while [ -n "$1" ] ; do
       # Skip waiting for connection
       opt_no_wait="1"
       ;;
+    --no-cloud-init)
+      # Don't generate and attach the cloud init ISO
+      opt_no_cloud_init="1"
+      ;;
+    --no-reboot)
+      # Pass the --no-reboot flag to qemu
+      opt_no_cloud_init="1"
+      ;;
+    --print-xml)
+      # Print the domain XML before launch
+      opt_print_xml="1"
+      ;;
     # Arguments which take 1 parameter
     --cpus)
       shift
       opt_cpus="$1"
-      ;;
-    --video)
-      opt_video=1
       ;;
     --extra-disks)
       shift
@@ -168,6 +182,7 @@ $0 [image src name] [VM name]
   --video         Attach a video device to a standard VM
   --cpus          Specify number of CPUs (default 2)
   --extra-disks   Specify extra disks to attach as a comma (,) separated list of sizes (i.e. 100G)
+                  Pass = to specify a source disk image from the source pool e.g. 10G=source.img
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
   --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
@@ -177,13 +192,15 @@ $0 [image src name] [VM name]
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
   --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
-  --arch          Specify the architecture (x86_64 or arm64)
+  --arch          Specify the architecture (x86_64, arm64 or i386 - defaults to x86_64)
   --dst-pool      Specify the output pool for disk images
   --src-pool      Specify the pool for source images
   --cfg-pool      Specify the pool for cloud-init data
   --ssh-pubkey-file Specify the SSH public key file to be injected
   --no-ssh-inject Disable any injection of an SSH public key
   --no-wait       Do not wait for the image to become network reachable
+  --no-cloud-init Do not output cloud-init boot data
+  --no-reboot     Pass the --no-reboot flag to QEMU
   --help          Display this help text.
 
 EOF
@@ -202,6 +219,10 @@ case "$opt_arch" in
     log "Architecture: amd64 (x86_64)"
     arch="x86_64"
   ;;
+  # i386)
+  #   log "Architecture: i386 (x86)"
+  #   arch="i386"
+  # ;;
   arm64)
     log "Architecture: arm64 (aarch64)"
     arch="aarch64"
@@ -210,6 +231,11 @@ case "$opt_arch" in
     fatal 1 "Unknown architectue: $opt_arch"
   ;;
 esac
+
+if [ $opt_windows = 1 ]; then
+  log "Forcing --video due to --windows flag"
+  opt_video=1
+fi
 
 # Best effort image source
 if [ $opt_installer = 0 ] && [ $opt_no_image = 1 ]; then
@@ -296,7 +322,7 @@ EOF
   echo "$ssh_authorized_key"
 }
 
-if [ $opt_installer = 0 ]; then
+if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
   if [ $opt_no_ssh_inject = 0 ]; then
     if [ -z "${opt_ssh_pubkey_file}" ]; then
       log "Attempting to get SSH public key from user's private key (pass --no-ssh-inject to disable entirely)"
@@ -441,11 +467,10 @@ fi
 # Controls whether we clean up disks after a failure.
 disks_in_use=0
 
-# Setup the VM disks
-if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
-  # Get the backing volume.
-  backing_vol=""
-
+function get_backing_volume() {
+  local vol_entry="$1"
+  shift
+  local backing_vol=""
   while read -r vol_entry; do
     vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
     if [ "$vol_name" = "$image_src" ]; then
@@ -453,6 +478,14 @@ if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
       break
     fi
   done < <($virsh vol-list --pool "$opt_src_pool")
+  echo "$backing_vol"
+  return 0
+}
+
+# Setup the VM disks
+if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
+  # Get the backing volume.
+  backing_vol="$(get_backing_volume "$image_src")"
 
   if [ -z "$backing_vol" ]; then
     fatal 1 "Volume $image_src could not be located in the $opt_src_pool pool."
@@ -499,15 +532,42 @@ if [ ! -z "$opt_extra_disks" ]; then
   while read -r diskspec; do
     i=$((i+1))
 
+    IFS="=" read -r diskspec_size diskspec_src < <(echo "$diskspec")
+
     extra_disk_path="lci.$image_name.disk-${i}.qcow2"
-    if ! $virsh vol-create-as \
-      --pool "$opt_dst_pool" \
-      --name "${extra_disk_path}" \
-      --format qcow2 \
-      --capacity "$diskspec" \
-      --allocation 0 \
-      --prealloc-metadata 1>&2 ; then
-      disk_failure=1
+    if [ ! -z $diskspec_src ]; then
+      local_backing_vol="$(get_backing_volume "$diskspec_src")"
+
+      if [ -z "$local_backing_vol" ]; then
+        fatal 1 "Volume $diskspec_src could not be located in the $opt_src_pool pool."
+      fi
+
+      local_backing_image_format=$( $qemuimg info "$local_backing_vol" | grep -F "file format: " | head -n1 | cut -d":" -f2 | tr -d ' ' )
+
+      if [ -z "$local_backing_image_format" ] ; then
+        fatal 1 "Could not determine backing image format for diskspec: $diskspec"
+      fi
+
+      if ! $virsh vol-create-as \
+        --pool "$opt_dst_pool" \
+        --name "${extra_disk_path}" \
+        --format qcow2 \
+        --backing-vol "$local_backing_vol"  \
+        --backing-vol-format "$local_backing_image_format" \
+        --capacity "$diskspec_size" \
+        1>&2 ; then
+        disk_failure=1
+      fi
+    else
+      if ! $virsh vol-create-as \
+        --pool "$opt_dst_pool" \
+        --name "${extra_disk_path}" \
+        --format qcow2 \
+        --capacity "$diskspec_size" \
+        --allocation 0 \
+        --prealloc-metadata 1>&2 ; then
+        disk_failure=1
+      fi
     fi
     atexit "[ \${disks_in_use} = 0 ] && ( $virsh vol-delete --pool \"$opt_dst_pool\" \"$extra_disk_path\" )"
     extra_disks+=( "${extra_disk_path}" )
@@ -560,10 +620,14 @@ if [ $opt_no_image = 0 ]; then
   fi
 
   if [ -z "$iso_file_path" ]; then
-    fatal 1 "Failed to set an ISO file"
+    if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
+      fatal 1 "Failed to set an ISO file"
+    else
+      log "Cloud-init disabled"
+    fi
+  else 
+    log "ISO file path: $iso_file_path"
   fi
-
-  log "ISO file path: $iso_file_path"
 fi
 
 libvirt_root=/var/lib/libvirt
@@ -714,6 +778,13 @@ if [ $((opt_cpus / 2)) = 0 ]; then
   cpu_threads=1
 fi
 
+qemu_args_xml=""
+read -r -d '' qemu_args_xml << EOF
+  <qemu:commandline>
+    <qemu:arg value='-no-reboot'/>
+  </qemu:commandline>
+EOF
+
 log "Set CPU topology: ${cpu_cores} cores with ${cpu_threads} threads"
 
 cpu_xml=""
@@ -722,6 +793,7 @@ read -r -d '' cpu_xml << EOF
     <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
     $nvram1
     $nvram2
+    <bios useserial='yes'/>
   </os>
   <cpu mode="custom" match="exact" check="none">
     <model fallback="allow">EPYC</model>
@@ -771,6 +843,57 @@ read -r -d '' input_xml << EOF
     <input type='mouse' bus='ps2'/>
 EOF
 
+# # Was i386 requested?
+# if [ "$arch" = "i386" ]; then
+#   read -r -d '' cpu_xml << EOF
+#   <os>
+#     <type arch="i686" machine="pc-i440fx-2.1">hvm</type>
+#     $nvram1
+#     $nvram2
+#   </os>
+#   <cpu mode="custom" match="exact" check="none">
+#     <model fallback="allow">EPYC</model>
+#     <topology sockets="1" dies="1" cores="${cpu_cores}" threads="${cpu_threads}"/>
+#     <feature policy='require' name='topoext'/>
+#   </cpu>
+# EOF
+
+#   read -r -d '' features_xml << EOF
+#     <pae/>
+#     <gic version='2'/>
+# EOF
+
+#   read -r -d '' controller_xml << EOF
+#   <controller type="pci" index="0" model="pcie-root"/>
+# EOF
+
+#   read -r -d '' clock_xml << EOF
+#   <clock offset='$clock_offset'>
+#     <timer name='rtc' tickpolicy='catchup'/>
+#     <timer name='pit' tickpolicy='delay'/>
+#     <timer name='hpet' present='no'/>
+#   </clock>
+# EOF
+
+#   pm_xml=""
+
+#   read -r -d '' serial_xml << EOF
+#     <serial type='pty'>
+#       <target type='pci-serial' port='0'>
+#         <model name='pci-serial'/>
+#       </target>
+#     </serial>
+# EOF
+
+# read -r -d '' input_xml << EOF
+#     <input type='tablet' bus='usb'/>
+#     <input type='mouse' bus='usb'/>
+# EOF
+
+#   emulator="/usr/bin/qemu-system-i386"
+#   virt_type="qemu"
+# fi
+
 # Was arm requested?
 if [ "$arch" = "aarch64" ]; then
   read -r -d '' cpu_xml << EOF
@@ -778,6 +901,7 @@ if [ "$arch" = "aarch64" ]; then
     <type arch="aarch64" machine="virt">hvm</type>
     $nvram1
     $nvram2
+    <bios useserial='yes'/>
   </os>
   <cpu mode='custom' match='exact' check='none'>
     <model fallback='allow'>cortex-a53</model>
@@ -818,6 +942,16 @@ EOF
 
   emulator="/usr/bin/qemu-system-aarch64"
   virt_type="qemu"
+fi
+
+spice_vmc=""
+if [ $opt_video = 1 ]; then
+  read -r -d '' spice_vmc << EOF
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0'/>
+    </channel>
+    <redirdev bus='usb' type='spicevmc'/>
+EOF
 fi
 
 root_boot_order_xml='<boot order="1"/>'
@@ -905,15 +1039,11 @@ cat << EOF > "$xml_def"
     <channel type='unix'>
       <target type='virtio' name='org.qemu.guest_agent.0'/>
     </channel>
-    <channel type='spicevmc'>
-      <target type='virtio' name='com.redhat.spice.0'/>
-    </channel>
+    $spice_vmc
     $input_xml
     <tpm model="tpm-crb">
       <backend type="emulator" version="2.0"/>
     </tpm>
-
-    <redirdev bus='usb' type='spicevmc'/>
     <memballoon model='virtio'/>
     <rng model='virtio'>
       <backend model='random'>/dev/urandom</backend>
@@ -921,8 +1051,15 @@ cat << EOF > "$xml_def"
 
     $video_xml
   </devices>
+  $qemu_args_xml
 </domain>
 EOF
+
+if [ $opt_print_xml = 1 ]; then
+  log "==STA XML DEFINITION=="
+  cat "$xml_def"
+  log "==END XML DEFINITION=="
+fi
 
 if ! $virsh define --file "${xml_def}" 1>&2; then
   fatal 1 "Failed to create the new virtual machine definition"
