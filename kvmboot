@@ -301,7 +301,14 @@ function get_ssh_public_key_for_user() {
 
   local user_home=$(bash -c "cd ~$(printf %q "$user") && pwd")
 
-  ssh_key_path="${user_home}/.ssh/id_rsa"
+  # Try several key types
+  for keytype in $(ssh-keygen --help 2>&1 | grep -- '-t' | sed 's/-t//g' | tr -d ' []' | tr -s '|' ' '); do
+    ssh_key_path="${user_home}/.ssh/id_${keytype}"
+    if [ -e "$ssh_key_path" ]; then
+      break
+    fi
+    ssh_key_path=
+  done  
 
   get_pass_script=$(mktemp)
   chmod +x "$get_pass_script"
@@ -501,7 +508,7 @@ if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
     fatal 1 "Could not determine backing image format."
   fi
 
-  log "Create root disk with capacity: $capacity"
+  log "Create root disk with capacity: $root_disk $capacity (backed by $backing_vol - $backing_image_format)"
   if ! $virsh vol-create-as \
       --pool "$opt_dst_pool"  \
       --name "$root_disk"  \
@@ -513,7 +520,7 @@ if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
   fi
 else
   # Installer mode - make a blank disk.
-  log "Create root disk with capacity: $capacity"
+  log "Create root disk with capacity: $root_disk $capacity"
   if ! $virsh vol-create-as \
       --pool "$opt_dst_pool"  \
       --name "$root_disk"  \
@@ -548,6 +555,7 @@ if [ ! -z "$opt_extra_disks" ]; then
         fatal 1 "Could not determine backing image format for diskspec: $diskspec"
       fi
 
+      log "Create extra disk with capacity: $extra_disk_path $capacity (backed by $local_backing_vol - $local_backing_image_format)"
       if ! $virsh vol-create-as \
         --pool "$opt_dst_pool" \
         --name "${extra_disk_path}" \
@@ -559,6 +567,7 @@ if [ ! -z "$opt_extra_disks" ]; then
         disk_failure=1
       fi
     else
+      log "Create extra disk with capacity: $extra_disk_path $capacity"
       if ! $virsh vol-create-as \
         --pool "$opt_dst_pool" \
         --name "${extra_disk_path}" \
