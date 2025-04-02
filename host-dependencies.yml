@@ -82,13 +82,13 @@
             dest: "{{files_dir}}/{{vscode_installer}}"
 
 
-    - name: Check for Windows Server 2K19 ISO files
-      block:
-        - name: Windows Server 2019 ISO must exist
-          stat:
-            path: "{{files_dir}}/{{win_2k19_iso}}"
-          register: win_wk19_st
-          when: not win_wk19_st.stat.exists
+    # - name: Check for Windows Server 2K19 ISO files
+    #   block:
+    #     - name: Windows Server 2019 ISO must exist
+    #       stat:
+    #         path: "{{files_dir}}/{{win_2k19_iso}}"
+    #       register: win_wk19_st
+    #       when: not win_wk19_st.stat.exists
 
         # - name: Download Win 2K19 ISO
         #   get_url:
@@ -96,13 +96,13 @@
         #     dest: "{{files_dir}}/{{win7_iso}}"
         #   when: not win_wk19_st.stat.exists
 
-    - name: Check for Windows Server 2022 ISO files
-      block:
-        - name: Windows Server 2022 ISO must exist
-          stat:
-            path: "{{files_dir}}/{{win_2022_iso}}"
-          register: win_wk22_st
-          when: not win_wk22_st.stat.exists
+    # - name: Check for Windows Server 2022 ISO files
+    #   block:
+    #     - name: Windows Server 2022 ISO must exist
+    #       stat:
+    #         path: "{{files_dir}}/{{win_2022_iso}}"
+    #       register: win_wk22_st
+    #       when: not win_wk22_st.stat.exists
 
         # - name: Download Win 2022 ISO
         #   get_url:
@@ -110,44 +110,44 @@
         #     dest: "{{files_dir}}/{{win2022_iso}}"
         #   when: not win_wk22_st.stat.exists
 
-    - name: Check for Windows 10 ISO files
-      block:
-        - name: Windows 10 ISO must exist
-          stat:
-            path: "{{files_dir}}/{{win10_iso}}"
-          register: win_10_st
+    # - name: Check for Windows 10 ISO files
+    #   block:
+    #     - name: Windows 10 ISO must exist
+    #       stat:
+    #         path: "{{files_dir}}/{{win10_iso}}"
+    #       register: win_10_st
 
-        - name: Download the Win 7 ISO
-          get_url:
-            url: https://software-download.microsoft.com/sg/Win10_20H2_v2_English_x64.iso?t=e9868523-e6f5-4804-8e43-1db4340f3615&e=1621343235&h=0ae68227da3db427fb472f65bd4c6894
-            dest: "{{files_dir}}/{{win7_iso}}"
-          when: not win_10_st.stat.exists
+    #     - name: Download the Win 7 ISO
+    #       get_url:
+    #         url: https://software-download.microsoft.com/sg/Win10_20H2_v2_English_x64.iso?t=e9868523-e6f5-4804-8e43-1db4340f3615&e=1621343235&h=0ae68227da3db427fb472f65bd4c6894
+    #         dest: "{{files_dir}}/{{win7_iso}}"
+    #       when: not win_10_st.stat.exists
 
-    - name: Check for Windows 7 ISO files
-      block:
-        - name: Windows 7 ISO must exist
-          stat:
-            path: "{{files_dir}}/{{win7_iso}}"
-          register: win_7_st
+    # - name: Check for Windows 7 ISO files
+    #   block:
+    #     - name: Windows 7 ISO must exist
+    #       stat:
+    #         path: "{{files_dir}}/{{win7_iso}}"
+    #       register: win_7_st
 
-        - name: Download the Win 7 ISO
-          get_url:
-            url: https://the-eye.eu/public/MSDN/Windows%207/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
-            dest: "{{files_dir}}/{{win7_iso}}"
-          when: not win_7_st.stat.exists
+    #     - name: Download the Win 7 ISO
+    #       get_url:
+    #         url: https://the-eye.eu/public/MSDN/Windows%207/en_windows_7_professional_with_sp1_vl_build_x64_dvd_u_677791.iso
+    #         dest: "{{files_dir}}/{{win7_iso}}"
+    #       when: not win_7_st.stat.exists
 
-    - name: Check for Ubuntu 24.04 ISO files
-      block:
-        - name: Ubuntu 24.04 ISO must exist
-          stat:
-            path: "{{files_dir}}/{{ubuntu2404_iso}}"
-          register: ubuntu2404_st
+    # - name: Check for Ubuntu 24.04 ISO files
+    #   block:
+    #     - name: Ubuntu 24.04 ISO must exist
+    #       stat:
+    #         path: "{{files_dir}}/{{ubuntu2404_iso}}"
+    #       register: ubuntu2404_st
 
-        - name: Download the Ubuntu 24.04 ISO
-          get_url:
-            url: https://mirror.aarnet.edu.au/pub/ubuntu/releases/24.04/ubuntu-24.04-desktop-amd64.iso
-            dest: "{{files_dir}}/{{ubuntu2404_iso}}"
-          when: not ubuntu2404_st.stat.exists
+    #     - name: Download the Ubuntu 24.04 ISO
+    #       get_url:
+    #         url: https://mirror.aarnet.edu.au/pub/ubuntu/releases/24.04/ubuntu-24.04-desktop-amd64.iso
+    #         dest: "{{files_dir}}/{{ubuntu2404_iso}}"
+    #       when: not ubuntu2404_st.stat.exists
 
     - name: Install launch-cloud-image dependencies
       become: true
