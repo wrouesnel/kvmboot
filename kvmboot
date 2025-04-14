@@ -298,8 +298,9 @@ fi
 
 function get_ssh_public_key_for_user() {
   local user="$1"
+  local user_home
 
-  local user_home=$(bash -c "cd ~$(printf %q "$user") && pwd")
+  user_home=$(bash -c "cd ~$(printf %q "$user") && pwd")
 
   # Try several key types
   for keytype in $(ssh-keygen --help 2>&1 | grep -- '-t' | sed 's/-t//g' | tr -d ' []' | tr -s '|' ' '); do
@@ -309,6 +310,22 @@ function get_ssh_public_key_for_user() {
     fi
     ssh_key_path=
   done  
+
+  if [ -z "$ssh_keypath" ]; then
+    log "Did not find an SSH key path - looking for a public key which might use unconventional capability"
+    for keytype in $(ssh-keygen --help 2>&1 | grep -- '-t' | sed 's/-t//g' | tr -d ' []' | tr -s '|' ' '); do
+      ssh_key_path="${user_home}/.ssh/id_${keytype}.pub"
+      if [ -e "$ssh_key_path" ]; then
+        break
+      fi
+      ssh_key_path=
+    done
+    if [ -z "$ssh_key_path" ]; then
+      fatal 1 "Did not find any usable public keys either. Consider setting --no-ssh-inject"
+    fi
+    cat "$ssh_key_path"
+    return 0
+  fi
 
   get_pass_script=$(mktemp)
   chmod +x "$get_pass_script"
@@ -327,6 +344,7 @@ EOF
   fi
 
   echo "$ssh_authorized_key"
+  return 0
 }
 
 if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
@@ -341,6 +359,9 @@ if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
       ssh_authorized_key="$(head -n1 "${opt_ssh_pubkey_file}")"
     fi
 
+    if [ -z "${ssh_authorized_key}" ]; then
+      fatal 1 "Failed to find an SSH key to inject"
+    fi
     log "SSH authorized key will be injected: ${ssh_authorized_key}"
   else
     log "Not attempting SSH key injection"
