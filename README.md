@@ -391,6 +391,26 @@ Then launch to install:
 ./kvmboot --efi --video --installer ubuntu-24.04-unattended-virtio-user.iso ubuntu-desktop
 ```
 
+## Fedora 41 Cinnamon Spin Image
+
+Run the following to build an autoinstalling Fedora 41 Cinnamon Desktop linux,
+which is initialized with an encrypted filesystem and cloud init.
+
+```bash
+./prepare-fedora-iso.sh downloaded/Fedora-Cinnamon-Live-x86_64-41-1.4.iso \
+    $(libvirt_default_pool)/fedora-41-cinnamon-autoinstall.iso \
+    fedora-41-cinnamon-desktop/ks.cfg
+```
+
+Note: the ZFS encryption password is hardcoded as "defaultpassword" and should be changed once you launch
+the image.
+
+Then launch to install:
+
+```bash
+./kvmboot --efi --video --installer fedora-41-cinnamon-autoinstall.iso fedora-desktop
+```
+
 ## Ubuntu Core 24 Image
 
 Convert the image file to qcow2 file if you need to (highly recommend: 3.4GB -> 400mb with compression):
