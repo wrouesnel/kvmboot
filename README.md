@@ -396,19 +396,18 @@ Then launch to install:
 Run the following to build an autoinstalling Fedora 41 Cinnamon Desktop linux,
 which is initialized with an encrypted filesystem and cloud init.
 
-```bash
-./prepare-fedora-iso.sh downloaded/Fedora-Cinnamon-Live-x86_64-41-1.4.iso \
-    $(libvirt_default_pool)/fedora-41-cinnamon-autoinstall.iso \
-    fedora-41-cinnamon-desktop/ks.cfg
-```
+This needs a network installer image e.g. https://download.fedoraproject.org/pub/fedora/linux/releases/42/Everything/x86_64/iso/Fedora-Everything-netinst-x86_64-42-1.1.iso
 
-Note: the ZFS encryption password is hardcoded as "defaultpassword" and should be changed once you launch
-the image.
+```bash
+./prepare-fedora-iso.sh downloaded/Fedora-Everything-netinst-x86_64-42-1.1.iso \
+    $(libvirt_default_pool)/fedora-42-cinnamon-autoinstall.iso \
+    fedora-cinnamon-desktop/ks.cfg
+```
 
 Then launch to install:
 
 ```bash
-./kvmboot --efi --video --installer fedora-41-cinnamon-autoinstall.iso fedora-desktop
+./kvmboot --efi --video --installer fedora-42-cinnamon-autoinstall.iso fedora-desktop
 ```
 
 ## Ubuntu Core 24 Image
