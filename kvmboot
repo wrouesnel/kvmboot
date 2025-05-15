@@ -64,6 +64,7 @@ opt_isopath=""
 opt_cpus=2
 opt_arch="x86_64"
 opt_disk="100G"
+opt_staticnetworking=
 opt_no_image=0
 opt_no_boot=0
 opt_dst_pool="$_default_pool"
@@ -73,7 +74,10 @@ opt_ssh_pubkey_file=""
 opt_no_ssh_inject=0
 opt_no_wait=0
 opt_no_cloud_init=0
+opt_no_reboot=0
+opt_emit_ansible_creds=0
 opt_print_xml=0
+opt_oemdrv=
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -117,7 +121,12 @@ while [ -n "$1" ] ; do
       ;;
     --no-reboot)
       # Pass the --no-reboot flag to qemu
-      opt_no_cloud_init="1"
+      opt_no_reboot="1"
+      ;;
+    --emit-ansible-creds)
+      # Output credential files into an ansible inventory folder
+      shift
+      opt_emit_ansible_creds="$1"
       ;;
     --print-xml)
       # Print the domain XML before launch
@@ -131,6 +140,10 @@ while [ -n "$1" ] ; do
     --extra-disks)
       shift
       opt_extra_disks="$1"
+      ;;
+    --oemdrv)
+      shift
+      opt_oemdrv="$1"
       ;;
     --disk)
       shift
@@ -149,6 +162,10 @@ while [ -n "$1" ] ; do
     --password)
       shift
       opt_password="$1"
+      ;;
+    --static-networking)
+      shift
+      opt_staticnetworking="$1"
       ;;
     --iso-path)
       shift
@@ -183,6 +200,7 @@ $0 [image src name] [VM name]
   --cpus          Specify number of CPUs (default 2)
   --extra-disks   Specify extra disks to attach as a comma (,) separated list of sizes (i.e. 100G)
                   Pass = to specify a source disk image from the source pool e.g. 10G=source.img
+  --oemdrv        Create a FAT32 disk image named "OEMDRV" and add the given file to it (good for kickstart)
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
   --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
@@ -191,6 +209,7 @@ $0 [image src name] [VM name]
   --no-boot       Do not try and boot the VM just make it.
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
+  --static-networking Configure static networking <cidr>:<gateway>:<dns>[,<dns>]
   --iso-path      Output the cloud-init ISO to the supplied path. Do not start a VM.
   --arch          Specify the architecture (x86_64, arm64 or i386 - defaults to x86_64)
   --dst-pool      Specify the output pool for disk images
@@ -201,10 +220,14 @@ $0 [image src name] [VM name]
   --no-wait       Do not wait for the image to become network reachable
   --no-cloud-init Do not output cloud-init boot data
   --no-reboot     Pass the --no-reboot flag to QEMU
+  --emit-ansible-creds Specify an inventory root folder where ansible credentials will be emitted
   --help          Display this help text.
 
 EOF
       exit 0
+      ;;
+    --*)
+      fatal 1 "Unrecognized flag: $1"
       ;;
     *)
       break
@@ -431,6 +454,45 @@ ${ssh_key_block2}
 final_message: "launch-cloud-image: SYSTEM READY"
 EOF
 
+  # Configure networking if static networking requested
+  if [ -n "${opt_staticnetworking}" ]; then
+    log "Static Networking Requested"
+    readarray -t -d':' network_fields < <(echo -n "$opt_staticnetworking")
+    ipcidr="${network_fields[0]}"
+    gateway="${network_fields[1]}"
+    dns="${network_fields[2]}"
+
+    log " IP: $ipcidr"
+    log " GW: $gateway"
+    log "DNS: $dns"
+
+    if [ -z "$ipcidr" ]; then
+      fatal 1 "Static networking requires an IP CIDR"
+    fi
+
+    if [ -z "$gateway" ]; then
+      fatal 1 "Static networking requires a default gateway"
+    fi
+
+    if [ -z "$dns" ]; then
+      fatal 1 "Static networking requires a DNS server"
+    fi
+
+    cat > "${config_dir}/network-config" << EOF
+network:
+  version: 2
+  ethernets:
+    en*:
+      addresses:
+      - $ipcidr
+      nameservers:
+        addresses:
+        - $dns
+      routes:
+      - to: 0.0.0.0/0
+        via: $gateway
+EOF
+  fi
 
   # Build the user data ISO
 
@@ -494,6 +556,21 @@ fi
 
 # Controls whether we clean up disks after a failure.
 disks_in_use=0
+
+function get_volume_file() {
+  local vol_entry="$1"
+  shift
+  local backing_vol=""
+  while read -r vol_entry; do
+    vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
+    if [ "$vol_name" = "$image_src" ]; then
+      backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+      break
+    fi
+  done < <($virsh vol-list --pool "$opt_dst_pool")
+  echo "$backing_vol"
+  return 0
+}
 
 function get_backing_volume() {
   local vol_entry="$1"
@@ -609,6 +686,67 @@ if [ ! -z "$opt_extra_disks" ]; then
   fi
 fi
 
+if [ -n "$opt_oemdrv" ]; then
+  log "OEM Drive Requested"
+
+  log "Making partitions"
+  partitionfile="$(mktemp)"
+  atexit "rm -f $partitionfile"
+
+  oem_partsize=$(( 40*1024*1024 ))
+  oem_disksize=$(( 64*1024*1024 ))
+
+  if ! fallocate -l $oem_partsize "$partitionfile"; then
+    fatal 1 "Could not allocate space in partition file: ${partitionfile}"
+  fi
+
+  if ! mkfs.fat -F32 -S 512 "$partitionfile" >/dev/null; then
+    fatal 1 "Could not FAT32 filesystem in partition file: ${partitionfile}"
+  fi
+
+  if ! mcopy -i "${partitionfile}" "$opt_oemdrv" "::$(basename "$opt_oemdrv")"; then
+    fatal 1 "Failed copy $opt_oemdrv to $partitionfile as $(basename "$opt_oemdrv")"
+  fi
+
+  # Get the OEM drive file
+  oemdrv_img="$(mktemp)"
+  atexit "rm -f ${oemdrv_img}"
+  if ! fallocate -l $oem_disksize "${oemdrv_img}"; then
+    fatal 1 "Could not allocate drive image"
+  fi
+
+  log "Allocating Partitition Table: ${oemdrv_img}"
+  if ! sgdisk -n 1:0: -t1:0700 "${oemdrv_img}" 1>/dev/null 2>&1 ; then
+    fatal 1 "Failed partitioning drive file"
+  fi
+
+  sectorpos="$(sgdisk -i1 "${oemdrv_img}" | grep 'First sector' | cut -d':' -f2 | cut -d' ' -f2)"
+  sectorsize="$(sgdisk -p "${oemdrv_img}" | grep 'Sector size' | cut -d':' -f2 | cut -d' ' -f2)"
+
+  log "Copying filesystem to disk"
+  if ! dd "of=${oemdrv_img}" "if=${partitionfile}" "bs=$sectorsize" "seek=$sectorpos" 1>/dev/null 2>&1 ; then
+    fatal 1 "Failed to copy the filesystem"
+  fi
+
+  log "Uploading OEMDRV volume"
+  oemdrv_path="lci.$image_name.oemdrv.img"
+  if ! $virsh vol-create-as \
+    --pool "$opt_dst_pool" \
+    --name "${oemdrv_path}" \
+    --capacity $oem_disksize \
+    --format raw \
+    1>&2 ; then
+    fatal 1 "Error while creating OEMDRV for VM"
+  fi
+
+  # Upload to volume
+  if ! $virsh vol-upload --pool "$opt_dst_pool" --offset 0 --length $oem_disksize "$oemdrv_path" "$oemdrv_img" 1>&2 ; then
+    $virsh vol-delete --pool "$opt_dst_pool" "$oemdrv_img" || log "Failed to delete $oemdrv_img. Please delete manually."
+    fatal 1 "Could not upload the OEMDRV volume"
+  fi
+
+  extra_disks+=( "${oemdrv_path}" )
+fi
 
 log "User Login: $default_user" 
 
@@ -679,10 +817,14 @@ alphas=( {a..z} )
 i=0
 for extra_disk_path in "${extra_disks[@]}"; do
   i=$((i+1))
+    disk_format="qcow2"
+    if [ "${extra_disk_path##*.}" = "img" ]; then
+      disk_format="raw"
+    fi
     read -r -d '' disk_xml << EOF
 ${disk_xml}
 <disk type='file' device='disk'>
-  <driver name='qemu' type='qcow2'/>
+  <driver name='qemu' type='$disk_format'/>
   <source file='${volnameMap[$extra_disk_path]}'/>
   <target dev='vd${alphas[i]}' bus='virtio'/>
 </disk>
@@ -1132,6 +1274,20 @@ else
   # Write the machine hostname to stdout.
   echo "${vm_dns}" : "$default_user" : "$default_password"
 
+  # Emit ansible credentials if requested
+  if [ -n "$opt_emit_ansible_creds" ]; then
+    # Inject credentials as a kvmboot.yml file under host vars
+    if [ ! -d "${opt_emit_ansible_creds}" ]; then
+      fatal 1 "Could not emit ansible credentials - supplied path not a directory"
+    fi
+    mkdir -p "${opt_emit_ansible_creds}/host_vars/${vm_dns}"
+    cat << EOF > "${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot.yml"
+# kvmboot managed credentials file
+ansible_user: "${default_user}"
+ansible_password: "${default_password}"
+EOF
+  fi
+
 if [ $opt_no_wait = 0 ]; then
     # Wait for the machine to boot to SSH completion
     while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
@@ -1166,7 +1322,4 @@ if [ $opt_no_wait = 0 ]; then
     } >> "$HOME/.ssh/known_hosts"
 
   fi
-
-  # TODO: Create an ansible-like inventory file entry for the machine.
-  # The idea is you just do cat *.inventory > inventory to build something to work with.
 fi
