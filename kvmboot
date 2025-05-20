@@ -75,7 +75,7 @@ opt_no_ssh_inject=0
 opt_no_wait=0
 opt_no_cloud_init=0
 opt_no_reboot=0
-opt_emit_ansible_creds=0
+opt_emit_ansible_creds=
 opt_print_xml=0
 opt_oemdrv=()
 # Collect optional arguments
