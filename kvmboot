@@ -123,7 +123,7 @@ while [ -n "$1" ] ; do
       # Pass the --no-reboot flag to qemu
       opt_no_reboot="1"
       ;;
-    --emit-ansible-creds)
+    --ansible-creds)
       # Output credential files into an ansible inventory folder
       shift
       opt_emit_ansible_creds="$1"
@@ -220,7 +220,7 @@ $0 [image src name] [VM name]
   --no-wait       Do not wait for the image to become network reachable
   --no-cloud-init Do not output cloud-init boot data
   --no-reboot     Pass the --no-reboot flag to QEMU
-  --emit-ansible-creds Specify an inventory root folder where ansible credentials will be emitted
+  --ansible-creds Specify an inventory root folder where ansible credentials will be emitted
   --help          Display this help text.
 
 EOF
@@ -1282,8 +1282,10 @@ else
     if [ ! -d "${opt_emit_ansible_creds}" ]; then
       fatal 1 "Could not emit ansible credentials - supplied path not a directory"
     fi
+    credentials_path="${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot.yml"
+    log "Writing ansible credentials to: ${credentials_path}"
     mkdir -p "${opt_emit_ansible_creds}/host_vars/${vm_dns}"
-    cat << EOF > "${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot.yml"
+    cat << EOF > "${credentials_path}"
 # kvmboot managed credentials file
 ansible_user: "${default_user}"
 ansible_password: "${default_password}"
