@@ -1341,6 +1341,7 @@ EOF
   cat << EOF > "${ansible_host_path}"
 # kvmboot managed credentials file
 ansible_host: "$ipaddr"
+ansible_winrm_kerberos_hostname_override: ${vm_dns}
 EOF
     fi
   fi
