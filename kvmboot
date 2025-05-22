@@ -1338,7 +1338,7 @@ EOF
     if [ -n "${ipaddr}" ]; then
       ansible_host_path="${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot-host.yml"
       log "Writing ansible host files to: ${ansible_host_path}"
-  cat << EOF > "${credentials_path}"
+  cat << EOF > "${ansible_host_path}"
 # kvmboot managed credentials file
 ansible_host: "$ipaddr"
 EOF
