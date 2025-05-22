@@ -370,6 +370,9 @@ EOF
   return 0
 }
 
+# Calculate MAC address up here so we can use it in network configuration for config frives.
+mac_addr="$(echo -n 52:54:00; dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '/1 ":%02X"')"
+
 if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
   if [ $opt_no_ssh_inject = 0 ]; then
     if [ -z "${opt_ssh_pubkey_file}" ]; then
@@ -482,16 +485,44 @@ EOF
 network:
   version: 2
   ethernets:
-    en*:
+    id0:
+      match:
+        macaddress: "$mac_addr"
+      name: eth0
       addresses:
       - $ipcidr
       nameservers:
         addresses:
-        - $dns
-      routes:
-      - to: 0.0.0.0/0
-        via: $gateway
+        - "$dns"
+      gateway4: "$gateway"
 EOF
+
+  # cloudbase-init seems to look for network_config.json so duplicate into that
+    cat > "${config_dir}/network_data.json" << EOF
+{
+  "network": {
+    "version": 2,
+    "ethernets": {
+      "id0": {
+        "match": {
+          "macaddress": "$mac_addr"
+        },
+        "name": "eth0",
+        "addresses": [
+          "$ipcidr"
+        ],
+        "nameservers": {
+          "addresses": [
+            "$dns"
+          ]
+        },
+        "gateway4": "$gateway"
+      }
+    }
+  }
+}
+EOF
+
   fi
 
   # Build the user data ISO
@@ -811,7 +842,6 @@ if [ $opt_efi = 1 ]; then
   log "EFI vars path: ${efi_vars_path}"
 fi
 
-mac_addr="$(echo -n 52:54:00; dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '/1 ":%02X"')"
 vm_name="${image_name}"
 
 disk_xml=
