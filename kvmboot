@@ -1289,6 +1289,8 @@ else
 # kvmboot managed credentials file
 ansible_user: "${default_user}"
 ansible_password: "${default_password}"
+# windows support
+ansible_winrm_transport: basic
 EOF
   fi
 
