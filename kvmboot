@@ -481,6 +481,9 @@ EOF
       fatal 1 "Static networking requires a DNS server"
     fi
 
+    ipaddr="${ipcidr%%/*}"
+    netmask="$(ipcalc --nobinary "${ipcidr}" | grep Netmask | tr -s ' ' | cut -d' ' -f2)"
+
     cat > "${config_dir}/network-config" << EOF
 network:
   version: 2
@@ -497,29 +500,39 @@ network:
       gateway4: "$gateway"
 EOF
 
-  # cloudbase-init seems to look for network_config.json so duplicate into that
+  # cloudbase-init seems to look for network_config.json and we fake openstack
+  # so we need to add that.
     cat > "${config_dir}/network_data.json" << EOF
 {
-  "network": {
-    "version": 2,
-    "ethernets": {
-      "id0": {
-        "match": {
-          "macaddress": "$mac_addr"
-        },
-        "name": "eth0",
-        "addresses": [
-          "$ipcidr"
-        ],
-        "nameservers": {
-          "addresses": [
-            "$dns"
-          ]
-        },
-        "gateway4": "$gateway"
-      }
+  "links": [
+    {
+      "id": "id0",
+      "ethernet_mac_address": "$mac_addr",
+      "link_type": "phy",
+      "mtu": 1500
     }
-  }
+  ],
+  "networks": [
+    {
+      "link": "id0",
+      "type": "ipv4",
+      "ip_address": "$ipaddr",
+      "netmask": "$netmask",
+      "routes": [
+        {
+          "gateway": "$gateway",
+          "network": "0.0.0.0",
+          "netmask": "0.0.0.0"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "type": "dns",
+      "address": "$dns"
+    }
+  ]
 }
 EOF
 
@@ -1322,28 +1335,42 @@ ansible_password: "${default_password}"
 # windows support
 ansible_winrm_transport: basic
 EOF
+    if [ -n "${ipaddr}" ]; then
+      ansible_host_path="${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot-host.yml"
+      log "Writing ansible host files to: ${ansible_host_path}"
+  cat << EOF > "${credentials_path}"
+# kvmboot managed credentials file
+ansible_host: "$ipaddr"
+EOF
+    fi
   fi
 
 if [ $opt_no_wait = 0 ]; then
-    # Wait for the machine to boot to SSH completion
-    while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
-      sleep 0.5
-    done
+    if [ -z "${ipaddr}" ]; then
+      # Wait for the machine to boot to SSH completion
+      while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
+        sleep 0.5
+      done
+
+      vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
+      if [ $? != 0 ]; then
+        fatal 1 "VM IP failed to be resolved."
+      fi
+    else
+      vm_ip="${ipaddr}"
+    fi
 
     if [ $opt_windows = 0 ]; then
-      while ! nc -z "${vm_dns}" 22 1>/dev/null 2>&1 ; do
+      while ! nc -z "${vm_ip}" 22 1>/dev/null 2>&1 ; do
         sleep 0.5
       done
     else
-      while ! nc -z "${vm_dns}" 5986 1>/dev/null 2>&1 ; do
+      while ! nc -z "${vm_ip}" 5986 1>/dev/null 2>&1 ; do
         sleep 0.5
       done
     fi  
 
-    vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
-    if [ $? != 0 ]; then
-      fatal 1 "VM IP failed to be resolved."
-    fi
+    
 
     # Inject the new machine into the current users known_hosts and remove any other entries
     # TODO: hide output except on error.
