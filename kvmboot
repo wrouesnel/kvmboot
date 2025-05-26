@@ -748,9 +748,31 @@ if [ -n "$opt_oemdrv" ]; then
     fatal 1 "Could not FAT32 filesystem in partition file: ${partitionfile}"
   fi
 
+  missing_files=()
   for fname in "${opt_oemdrv[@]}"; do
-    if ! mcopy -i "${partitionfile}" "$fname" "::$(basename "$fname")"; then
-      fatal 1 "Failed copy $fname to $partitionfile as $(basename "$fname")"
+    case "$fname" in 
+    -*)
+      # Allowed to not exist
+      if [ ! -e "${fname#-}" ]; then
+        continue
+      fi
+      ;;
+    *)
+      # Must exist
+      if [ ! -e "${fname#-}" ]; then
+        missing_files+=( "${fname#-}" )
+      fi
+      ;;
+    esac
+    if [ ${#missing_files[@]} -ne 0 ]; then
+      for failedfname in "${missing_files[@]}"; do
+        log "${failedfname}"
+      done
+      fatal 1 "Missing files for OEMDRV. Prefix with - if they are allowed to not exist."
+    fi
+
+    if ! mcopy -i "${partitionfile}" "${fname#-}" "::$(basename "${fname#-}")"; then
+      fatal 1 "Failed copy ${fname#-} to $partitionfile as $(basename "${fname#-}")"
     fi
   done
 

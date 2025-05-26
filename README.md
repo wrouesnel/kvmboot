@@ -36,6 +36,10 @@ A complete confirguraiton will look something like:
       <range start='192.168.122.10' end='192.168.122.200'/>
     </dhcp>
   </ip>
+  <dnsmasq:options>
+    <!-- this configuration is for handling an internal DNS server at this statically assigned address -->
+    <dnsmasq:option value="server=/default.libvirt/192.168.122.2"/>
+  </dnsmasq:options>
 </network>
 ```
 The dnsmasq options ensure that changing hostnames are reflected into dnsmasq by libvirt.
