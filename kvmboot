@@ -509,6 +509,7 @@ EOF
       "id": "id0",
       "ethernet_mac_address": "$mac_addr",
       "link_type": "phy",
+      "type": "phy",
       "mtu": 1500
     }
   ],
