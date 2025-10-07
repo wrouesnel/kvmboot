@@ -496,7 +496,7 @@ EOF
     fi
 
     ipaddr="${ipcidr%%/*}"
-    netmask="$(ipcalc --nobinary "${ipcidr}" | grep Netmask | tr -s ' ' | cut -d' ' -f2)"
+    netmask="$(ipcalc "${ipcidr}" | grep -i Netmask | tr '\t' ' ' | tr -s ' ' | cut -d' ' -f2)"
 
     cat > "${config_dir}/network-config" << EOF
 network:
