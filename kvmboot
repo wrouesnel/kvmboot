@@ -315,14 +315,16 @@ default_password="$opt_password"
 timezone="$(timedatectl show -p Timezone | cut -d'=' -f2-)"
 
 # Refresh storage pool before going further
-if ! $virsh pool-refresh "$opt_dst_pool" 1> /dev/null 2>&1 ; then
-  fatal 1 "Could not refresh destination pool: $opt_dst_pool"
-fi
-if ! $virsh pool-refresh "$opt_src_pool" 1> /dev/null 2>&1 ; then
-  fatal 1 "Could not refresh source pool: $opt_src_pool"
-fi
-if ! $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
-  fatal 1 "Could not refresh config pool: $opt_cfg_pool"
+if [ ! -n "${opt_isopath}" ]; then
+  if ! $virsh pool-refresh "$opt_dst_pool" 1> /dev/null 2>&1 ; then
+    fatal 1 "Could not refresh destination pool: $opt_dst_pool"
+  fi
+  if ! $virsh pool-refresh "$opt_src_pool" 1> /dev/null 2>&1 ; then
+    fatal 1 "Could not refresh source pool: $opt_src_pool"
+  fi
+  if ! $virsh pool-refresh "$opt_cfg_pool" 1> /dev/null 2>&1 ; then
+    fatal 1 "Could not refresh config pool: $opt_cfg_pool"
+  fi
 fi
 
 function get_ssh_public_key_for_user() {
