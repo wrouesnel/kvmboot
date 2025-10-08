@@ -379,7 +379,7 @@ EOF
 }
 
 # Calculate MAC address up here so we can use it in network configuration for config frives.
-if [ -n "$opt_macaddr" ]; then
+if [ -z "$opt_macaddr" ]; then
   mac_addr="$(echo -n 52:54:00; dd bs=1 count=3 if=/dev/random 2>/dev/null |hexdump -v -e '/1 ":%02X"')"
 else
   requested_mac="$(echo -n "$opt_macaddr" | tr 'A-Z' 'a-z' | tr -cd '0-9a-f' )"
