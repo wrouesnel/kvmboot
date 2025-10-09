@@ -1,0 +1,51 @@
+# Ubuntu 24.04 Virtualized "Server" Auto Install
+
+version: 1
+
+locale: en_AU.UTF-8
+
+refresh-installer:
+  update: false
+
+source:
+  search_drivers: true
+  id: ubuntu-server-minimal
+
+proxy: null
+
+# Install ZFS layout
+storage:
+  layout:
+    name: zfs
+# Install SSH
+ssh:
+  install-server: true
+  allow-pw: true
+# Packages
+packages:
+  - cloud-init
+  - qemu-guest-agent
+  - spice-vdagent
+  - synaptic
+  - apt-xapian-index
+  - zsys
+  - ksmtuned
+# Timezone
+timezone: Australia/Sydney
+late-commands:
+  # Setup zsys on the system by setting the correct ZFS flags
+  - curtin in-target --target=/target -- bash -c 'zfs set com.ubuntu.zsys:bootfs=yes $(comm -3 <(zfs list -Hp rpool/ROOT) <(zfs list -Hp -d 1 rpool/ROOT) | cut -f2)'
+  # Convert the environment to cinnamon
+  # We could use cinnamon desktop for this, but let's stick with a "standard" ISO for now.
+  - curtin in-target --target=/target -- apt autoremove --purge -y
+  # Enable kernel and grub serial console
+  - curtin in-target --target=/target -- sed -i 's/#GRUB_TERMINAL=\(.*\)/GRUB_TERMINAL="serial \1"/g' /etc/default/grub
+  - curtin in-target --target=/target -- sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 console=tty0 console=ttyS0,115200n8"/g' /etc/default/grub
+  - curtin in-target --target=/target -- sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3/g' /etc/default/grub
+  - curtin in-target --target=/target -- update-grub
+# Reboot after install
+shutdown: reboot
+# # This inhibits user creation, which for Desktop images means that
+# # gnome-initial-setup will prompt for user creation on first boot.
+# user-data:
+#   users: ['']
