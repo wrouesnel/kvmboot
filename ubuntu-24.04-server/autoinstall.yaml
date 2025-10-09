@@ -51,7 +51,7 @@ late-commands:
   - curtin in-target --target=/target -- sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3/g' /etc/default/grub
   - curtin in-target --target=/target -- update-grub
 # Reboot after install
-shutdown: reboot
+shutdown: poweroff
 # # This inhibits user creation, which for Desktop images means that
 # # gnome-initial-setup will prompt for user creation on first boot.
 # user-data:
