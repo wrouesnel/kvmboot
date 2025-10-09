@@ -395,6 +395,26 @@ Then launch to install:
 ./kvmboot --efi --video --installer ubuntu-24.04-unattended-virtio-user.iso ubuntu-desktop
 ```
 
+## Ubuntu 24.04 Server Image
+
+Run the following to build an autoinstalling Ubuntu 24.04 image. The reason to do this over using the cloud-init
+images is to get a ZFS filesystem. The resultant autoinstall is setup with cloud-init.
+
+```bash
+./prepare-ubuntu-iso.sh ~/opt/iso/ubuntu-24.04.3-live-server-amd64.iso \
+    $(libvirt_default_pool)/ubuntu-24.04-unattended-virtio-server.iso \
+    ubuntu-24.04-server/autoinstall.yaml
+
+```
+
+No encryption is enabled on this image - it is intended to be run as a VM.
+
+Then launch to install:
+
+```bash
+./kvmboot --efi --video --installer ubuntu-24.04-unattended-virtio-server.iso ubuntu-server
+```
+
 ## Fedora 41 Cinnamon Spin Image
 
 Run the following to build an autoinstalling Fedora 41 Cinnamon Desktop linux,

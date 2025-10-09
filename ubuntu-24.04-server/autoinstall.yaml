@@ -2,6 +2,13 @@
 
 version: 1
 
+identity:
+  realname: Ubuntu User
+  username: ubuntu
+  # ubuntu
+  password: $6$VKusq8EfS1ZRlQWR$fzV8XUXlD8IZLISB82hUUydeGOi7mictrlaOfzKtE/uzIxeuEfQ4bccf0I89GwJ7JTruWh1JHr3C5Eq9W5I2G0
+  hostname: ubuntu
+
 locale: en_AU.UTF-8
 
 refresh-installer:
