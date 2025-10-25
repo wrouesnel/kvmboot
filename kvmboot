@@ -79,6 +79,7 @@ opt_no_reboot=0
 opt_emit_ansible_creds=
 opt_print_xml=0
 opt_oemdrv=()
+opt_extrauserdata=()
 # Collect optional arguments
 while [ -n "$1" ] ; do
     arg="$1"
@@ -196,6 +197,14 @@ while [ -n "$1" ] ; do
       shift
       opt_ssh_pubkey_file="$1"
       ;;
+    --extra-userdata)
+      shift
+      opt_extrauserdata+=( "$1" )
+      ;;
+    --write-file)
+      shift
+      opt_writefile+=( "$1" )
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -210,8 +219,6 @@ $0 [image src name] [VM name]
   --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
   --installer     Makes a blank disk and mounts the requested image as an ISO instead.
-  --no-image      Do not mount any disk image (use with installer or when doing BOOTSTRAP)
-  --no-boot       Do not try and boot the VM just make it.
   --user          Username of the new user to create in the image
   --password      Password of the new user to create in the image
   --static-networking Configure static networking <cidr>:<gateway>:<dns>[,<dns>]
@@ -222,11 +229,16 @@ $0 [image src name] [VM name]
   --src-pool      Specify the pool for source images
   --cfg-pool      Specify the pool for cloud-init data
   --ssh-pubkey-file Specify the SSH public key file to be injected
+  --extra-userdata Include a file as an extra block of user data. Cannot override generated blocks.
+  --write-file    Add the given file to the write files section of cloudinit.
+                  Format: <src_name>,<dest name>,<owner>:<group>,<mode> 
+  --ansible-creds Specify an inventory root folder where ansible credentials will be emitted
+  --no-image      Do not mount any disk image (use with installer or when doing BOOTSTRAP)
+  --no-boot       Do not try and boot the VM just make it.
   --no-ssh-inject Disable any injection of an SSH public key
   --no-wait       Do not wait for the image to become network reachable
   --no-cloud-init Do not output cloud-init boot data
   --no-reboot     Pass the --no-reboot flag to QEMU
-  --ansible-creds Specify an inventory root folder where ansible credentials will be emitted
   --help          Display this help text.
 
 EOF
@@ -425,6 +437,62 @@ ssh_authorized_keys:
 EOF
   fi
 
+  write_files=""
+  if [ ${#opt_writefile[@]} -ne 0 ]; then
+    read -r -d '' write_files << EOF
+write_files:
+EOF
+    for fname in "${opt_writefile[@]}"; do
+      read -r -d',' src dst owner mode < <(echo -n "${fname}")
+      if [ ! -e "$src" ]; then
+        fatal 1 "--write-file source $src does not exist."
+      fi
+
+      read -r -d '' write_files << EOF
+${write_files}
+- encoding: gzip
+  content: !!binary |
+    $(gzip -c < "$src" | base64)
+  path: "$dst"
+  owner: "$owner"
+  permissions: "$mode"
+EOF
+    done
+  fi
+
+  extra_userdata=""
+  if [ ${#opt_extrauserdata[@]} -ne 0 ]; then
+    missing_files=()
+    for fname in "${opt_extrauserdata[@]}"; do
+      case "$fname" in 
+      -*)
+        # Allowed to not exist
+        if [ ! -e "${fname#-}" ]; then
+          continue
+        fi
+        ;;
+      *)
+        # Must exist
+        if [ ! -e "${fname#-}" ]; then
+          missing_files+=( "${fname#-}" )
+        fi
+        ;;
+      esac
+      if [ ${#missing_files[@]} -ne 0 ]; then
+        for failedfname in "${missing_files[@]}"; do
+          log "${failedfname}"
+        done
+        fatal 1 "Missing files for --extra-userdata. Prefix with - if they are allowed to not exist."
+      fi
+
+      read -r -d '' extra_userdata << EOF
+${extra_userdata}
+
+$(cat "$fname")
+EOF
+    done
+  fi
+
   prep_dir="$(mktemp -p "" -d "lci.$image_name.userdata.XXXXXXXXXX")"
   if [ $? != 0 ]; then
     fatal 1 "Failed to create temporary directory"
@@ -471,6 +539,10 @@ system_info:
 ${ssh_key_block2}
 
 final_message: "launch-cloud-image: SYSTEM READY"
+
+${write_files}
+
+${extra_userdata}
 EOF
 
   # Configure networking if static networking requested
