@@ -1457,6 +1457,9 @@ EOF
     fi
   fi
 
+# TODO: something like this
+# virsh -c qemu:///session domifaddr --source agent agent-1 | tail -n +3 | grep ipv4 | tr -s ' ' | grep -v '^ lo'
+
 if [ $opt_no_wait = 0 ]; then
     if [ -z "${ipaddr}" ]; then
       # Wait for the machine to boot to SSH completion
@@ -1480,9 +1483,7 @@ if [ $opt_no_wait = 0 ]; then
       while ! nc -z "${vm_ip}" 5986 1>/dev/null 2>&1 ; do
         sleep 0.5
       done
-    fi  
-
-    
+    fi
 
     # Inject the new machine into the current users known_hosts and remove any other entries
     # TODO: hide output except on error.
