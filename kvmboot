@@ -77,6 +77,7 @@ opt_no_wait=0
 opt_no_cloud_init=0
 opt_no_reboot=0
 opt_emit_ansible_creds=
+opt_ip_from_agent=0
 opt_print_xml=0
 opt_oemdrv=()
 opt_extrauserdata=()
@@ -129,6 +130,10 @@ while [ -n "$1" ] ; do
       # Output credential files into an ansible inventory folder
       shift
       opt_emit_ansible_creds="$1"
+      ;;
+    --ip-from-agent)
+      # Use the qemu-guest-agent to find the IP address
+      opt_ip_from_agent=1
       ;;
     --print-xml)
       # Print the domain XML before launch
@@ -233,6 +238,7 @@ $0 [image src name] [VM name]
   --write-file    Add the given file to the write files section of cloudinit.
                   Format: <src_name>,<dest name>,<owner>:<group>,<mode> 
   --ansible-creds Specify an inventory root folder where ansible credentials will be emitted
+  --ip-from-agent Use the qemu agent as an IP address source rather then DNS
   --no-image      Do not mount any disk image (use with installer or when doing BOOTSTRAP)
   --no-boot       Do not try and boot the VM just make it.
   --no-ssh-inject Disable any injection of an SSH public key
@@ -1463,13 +1469,33 @@ EOF
 if [ $opt_no_wait = 0 ]; then
     if [ -z "${ipaddr}" ]; then
       # Wait for the machine to boot to SSH completion
-      while ! host -W 1 "${vm_dns}" 1>/dev/null 2>&1 ; do
+      while 1 ; do
+        if [ $opt_ip_from_agent = 1 ]; then
+          ipaddr=$($virsh domifaddr --source agent "${vm_name}" --full | \
+            tail -n +3 | tr -s ' ' | grep -v lo | grep -v ipv6 | grep "${mac_addr}" | \
+            cut -d' ' -f5 | cut -d'/' -f1 2>/dev/null)
+          if [ -n "$ipaddr" ]; then
+            break
+          fi
+        else
+          if host -W 1 "${vm_dns}" 1>/dev/null 2>&1; then
+            break
+          fi
+        fi
         sleep 0.5
       done
 
-      vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"
-      if [ $? != 0 ]; then
-        fatal 1 "VM IP failed to be resolved."
+      if [ $opt_ip_from_agent = 1 ]; then
+        ipaddr=$($virsh domifaddr --source agent "${vm_name}" --full | \
+            tail -n +3 | tr -s ' ' | grep -v lo | grep -v ipv6 | grep "${mac_addr}" | \
+            cut -d' ' -f5 | cut -d'/' -f1 2>/dev/null)
+        if [ -z "$ipaddr" ]; then
+          fatal 1 "VM IP failed to be resolved."
+        fi
+      else
+        if ! vm_ip="$(host "${vm_dns}" | cut -d' ' -f4)"; then
+          fatal 1 "VM IP failed to be resolved."
+        fi
       fi
     else
       vm_ip="${ipaddr}"
