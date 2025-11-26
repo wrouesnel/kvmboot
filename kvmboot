@@ -316,7 +316,9 @@ fi
 if [ $opt_ram_set = 1 ]; then
   opt_ram="${_default_ram_for_video}"
 fi
-ram_bytes=$(echo "$opt_ram" | numfmt --from=iec)
+ram_bytes=$(echo "$opt_ram" | tr '[a-z]' '[A-Z]' | numfmt --from=iec)
+
+log "Set RAM: $(echo "${ram_bytes}" | numfmt --to=iec)"
 
 if [ -z "$image_name" ]; then
   image_name=lci-"$(dd if=/dev/urandom bs=1 count=6 2>/dev/null | base32 -w0 | cut -d'=' -f1 | tr '[:upper:]' '[:lower:]')"
