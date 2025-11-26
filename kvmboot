@@ -1469,7 +1469,7 @@ EOF
 if [ $opt_no_wait = 0 ]; then
     if [ -z "${ipaddr}" ]; then
       # Wait for the machine to boot to SSH completion
-      while 1 ; do
+      while true ; do
         if [ $opt_ip_from_agent = 1 ]; then
           ipaddr=$($virsh domifaddr --source agent "${vm_name}" --full | \
             tail -n +3 | tr -s ' ' | grep -v lo | grep -v ipv6 | grep "${mac_addr}" | \
