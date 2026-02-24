@@ -1215,10 +1215,13 @@ EOF
 
 log "Set CPU topology: ${cpu_cores} cores with ${cpu_threads} threads"
 
+log "Discover machine type"
+machine_type="$($virsh domcapabilities | grep '<machine>' | cut -d'>' -f2- | cut -d'<' -f1)"
+
 cpu_xml=""
 read -r -d '' cpu_xml << EOF
   <os>
-    <type arch="x86_64" machine="pc-i440fx-4.0">hvm</type>
+    <type arch="x86_64" machine="${machine_type}">hvm</type>
     $nvram1
     $nvram2
     <bios useserial='yes'/>
