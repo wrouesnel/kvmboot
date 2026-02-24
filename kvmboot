@@ -71,6 +71,7 @@ opt_no_boot=0
 opt_dst_pool="$_default_pool"
 opt_src_pool="$_default_pool"
 opt_cfg_pool="$_default_pool"
+opt_nvram_pool="$_default_pool"
 opt_ssh_pubkey_file=""
 opt_no_ssh_inject=0
 opt_no_wait=0
@@ -198,6 +199,10 @@ while [ -n "$1" ] ; do
       shift
       opt_cfg_pool="$1"
       ;;
+    --nvram-pool)
+      shift
+      opt_nvram_pool="$1"
+      ;;
     --ssh-pubkey-file)
       shift
       opt_ssh_pubkey_file="$1"
@@ -233,6 +238,7 @@ $0 [image src name] [VM name]
   --dst-pool      Specify the output pool for disk images
   --src-pool      Specify the pool for source images
   --cfg-pool      Specify the pool for cloud-init data
+  --nvram-pool    Specify the pool for NVRAM data
   --ssh-pubkey-file Specify the SSH public key file to be injected
   --extra-userdata Include a file as an extra block of user data. Cannot override generated blocks.
   --write-file    Add the given file to the write files section of cloudinit.
@@ -698,20 +704,42 @@ fi
 # Controls whether we clean up disks after a failure.
 disks_in_use=0
 
-function get_volume_file() {
-  local vol_entry="$1"
+virsh_uri="$( $virsh uri )"
+is_remote=0
+if [ "${virsh_uri%%://*}" = "qemu+ssh" ]; then
+  log "Detected Remote Hypervisor Connection: $virsh_uri"
+  is_remote=1
+fi
+
+function get_nvram_file() {
+  local key="$1"
   shift
-  local backing_vol=""
+  local backing_path=""
   while read -r vol_entry; do
     vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
-    if [ "$vol_name" = "$image_src" ]; then
-      backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+    if [ "$vol_name" = "$key" ]; then
+      backing_path=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
       break
     fi
-  done < <($virsh vol-list --pool "$opt_dst_pool")
-  echo "$backing_vol"
+  done < <($virsh vol-list --pool "$opt_nvram_pool")
+  echo "$backing_path"
   return 0
 }
+
+# function get_volume_file() {
+#   local vol_entry="$1"
+#   shift
+#   local backing_vol=""
+#   while read -r vol_entry; do
+#     vol_name="$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f1)"
+#     if [ "$vol_name" = "$image_src" ]; then
+#       backing_vol=$(echo "$vol_entry" | tr -s ' ' | cut -d' ' -f2)
+#       break
+#     fi
+#   done < <($virsh vol-list --pool "$opt_dst_pool")
+#   echo "$backing_vol"
+#   return 0
+# }
 
 function get_backing_volume() {
   local vol_entry="$1"
@@ -737,14 +765,30 @@ if [ $opt_installer = 0 ] && [ $opt_no_image = 0 ]; then
     fatal 1 "Volume $image_src could not be located in the $opt_src_pool pool."
   fi
 
-  if [ ! -e "$backing_vol" ]; then
-    fatal 1 "Volume $image_src at $backing_vol could does not exist or is inaccessible."
-  fi
+  if [ $is_remote -eq 0 ]; then
+    if [ ! -e "$backing_vol" ]; then
+      fatal 1 "Volume $image_src at $backing_vol could does not exist or is inaccessible."
+    fi
 
-  # Determine the type of backing format
-  backing_image_format=$( $qemuimg info "$backing_vol" | grep -F "file format: " | head -n1 | cut -d":" -f2 | tr -d ' ' )
-  if [ -z "$backing_image_format" ] ; then
-    fatal 1 "Could not determine backing image format."
+    # Determine the type of backing format
+    backing_image_format=$( $qemuimg info "$backing_vol" | grep -F "file format: " | head -n1 | cut -d":" -f2 | tr -d ' ' )
+    if [ -z "$backing_image_format" ] ; then
+      fatal 1 "Could not determine backing image format."
+    fi
+  else
+    # Guess the format from extension and warn it's a guess
+    log "Remote Hypervisor: using file extension to guess format"
+
+    case "${backing_vol##*.}" in
+      qcow2)
+        log "Inferred QCOW2 format from extension: $backing_vol"
+        backing_image_format=qcow2
+        ;;
+      *)
+        log "Inferred RAW format from extension: $backing_vol"
+        backing_image_format=raw
+        ;;
+    esac
   fi
 
   log "Create root disk with capacity: $root_disk $capacity (backed by $backing_vol - $backing_image_format)"
@@ -968,12 +1012,6 @@ if [ "$($virsh uri)" = "qemu:///session" ]; then
   libvirt_root="$HOME/.local/share/libvirt"
 fi
 
-if [ $opt_efi = 1 ]; then
-  nvram_path="${libvirt_root}/qemu/nvram"
-  efi_vars_path="${nvram_path}/$(basename "$root_disk_path")_VARS.fd"
-  log "EFI vars path: ${efi_vars_path}"
-fi
-
 vm_name="${image_name}"
 
 disk_xml=
@@ -1013,8 +1051,6 @@ atexit rm -f "$xml_def"
 # chmod 700 "${HOME}/shared/${image_name}/.gnupg"
 
 if [ $opt_efi = 1 ]; then
-  mkdir -p "$nvram_path"
-
   log "Configuring EFI code block"
   case "$arch" in
     aarch64)
@@ -1027,21 +1063,77 @@ if [ $opt_efi = 1 ]; then
     ;;
   esac
 
+  src_vars_name="${image_src}_VARS.fd"
+  efi_vars_name="$(basename "$root_disk_path")_VARS.fd"
+  log "EFI vars path: ${efi_vars_name}"
+
   # Check if the image has existing VARs
-  if [ -e "${nvram_path}/${image_src}_VARS.fd" ]; then
-    log "Image has existing EFI variables - copying: ${nvram_path}/${image_src}_VARS.fd"
-    cp "${nvram_path}/${image_src}_VARS.fd" "${efi_vars_path}"
+  src_vars_path="$(get_nvram_file "$efi_vars_name")"
+  if [ ! -z "$src_vars_path" ]; then
+    log "Image has existing EFI variables - copying: $src_vars_path -> $efi_vars_name"
+    tmp_srcvars=$(mktemp -p "" "$src_vars_path.XXXXXXXXXX")
+    if [ -z "$tmp_srcvars" ]; then
+      fatal 1 "Could not create a temporary file for downloading EFI vars"
+    fi
+    atexit rm -f "$tmp_srcvars"
+
+    if ! $virsh vol-download --pool "$opt_nvram_pool" "$src_vars_name" "$tmp_srcvars"; then
+      fatal 1 "Could not download existing EFI vars: $src_vars_name"
+    fi
+
+    if ! efi_vars_size=$(stat --format "%s" "$tmp_srcvars"); then
+      fatal 1 "Could not stat $tmp_srcvars"
+    fi
+
+    if ! $virsh vol-create-as \
+      --pool "$opt_nvram_pool" \
+      --name "${efi_vars_name}" \
+      --capacity $efi_vars_size \
+      --format raw \
+      1>&2 ; then
+      fatal 1 "Error while creating EFI vars volume for VM"
+    fi
+
+    if ! $virsh vol-upload --pool "$opt_nvram_pool" --offset 0 --length "$efi_vars_size" "$efi_vars_name" "$tmp_srcvars"; then
+      fatal 1 "Could not upload existing EFI vars: $tmp_srcvars -> $efi_vars_name"
+    fi
   else 
     log "No existing EFI variables. Initializing new ones."
     case "$arch" in
       aarch64)
-        cp "/usr/share/AAVMF/AAVMF_VARS.fd" "${efi_vars_path}"
+        nvram_src="/usr/share/AAVMF/AAVMF_VARS.fd"
       ;;
       x86_64)
-        cp "/usr/share/OVMF/OVMF_VARS_4M.fd" "${efi_vars_path}"
+        nvram_src="/usr/share/OVMF/OVMF_VARS_4M.fd"
       ;;
     esac
+    if ! efi_vars_size=$(stat --format "%s" "$nvram_src"); then
+      fatal 1 "Could not stat $nvram_src"
+    fi
 
+    if ! $virsh vol-create-as \
+      --pool "$opt_nvram_pool" \
+      --name "${efi_vars_name}" \
+      --capacity "$efi_vars_size" \
+      --format raw \
+      1>&2 ; then
+      fatal 1 "Error while creating EFI vars volume for VM"
+    fi
+
+    if ! $virsh vol-upload --pool "$opt_nvram_pool" --offset 0 --length "$efi_vars_size" "$efi_vars_name" "$nvram_src"; then
+      fatal 1 "Could not upload empty EFI vars file: $nvram_src -> $efi_vars_name"
+    fi
+  fi
+
+  for i in {1..3}; do
+    efi_vars_path="$( get_nvram_file "${efi_vars_name}" )"
+    if [ ! -z "$efi_vars_path" ]; then
+      break
+    fi
+    sleep 1
+  done
+  if [ -z "$efi_vars_path" ]; then
+    fatal 1 "EFI vars could not be allocated"
   fi
   nvram2="<nvram>${efi_vars_path}</nvram>"
 else
@@ -1365,7 +1457,7 @@ cat << EOF > "$xml_def"
     <interface type='bridge'>
       <mac address='${mac_addr}'/>
       <source bridge='virbr0'/>
-      <target dev='tap0'/>
+      <!--<target dev='tap0'/>-->
       <model type='virtio'/>
     </interface>
     $serial_xml
