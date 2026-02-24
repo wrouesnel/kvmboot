@@ -1216,7 +1216,7 @@ EOF
 log "Set CPU topology: ${cpu_cores} cores with ${cpu_threads} threads"
 
 log "Discover machine type"
-machine_type="$($virsh domcapabilities | grep '<machine>' | cut -d'>' -f2- | cut -d'<' -f1)"
+machine_type=$( $virsh capabilities --xpath '/capabilities/guest/arch[@name = "x86_64"]/machine//text()' | sort -r | grep -P 'pc-i440fx-(\d.+)' | head -n1 )
 
 cpu_xml=""
 read -r -d '' cpu_xml << EOF
