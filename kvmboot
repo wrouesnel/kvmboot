@@ -466,7 +466,7 @@ EOF
 ${write_files}
 - encoding: gzip
   content: !!binary |
-    $(gzip -c < "$src" | base64)
+$(gzip -c < "$src" | base64 | sed 's/^/    /')
   path: "$dst"
   owner: "$owner"
   permissions: "$mode"
@@ -1071,7 +1071,7 @@ if [ $opt_efi = 1 ]; then
   src_vars_path="$(get_nvram_file "$efi_vars_name")"
   if [ ! -z "$src_vars_path" ]; then
     log "Image has existing EFI variables - copying: $src_vars_path -> $efi_vars_name"
-    tmp_srcvars=$(mktemp -p "" "$src_vars_path.XXXXXXXXXX")
+    tmp_srcvars=$(mktemp -p "" "$(basename "$src_vars_path").XXXXXXXXXX")
     if [ -z "$tmp_srcvars" ]; then
       fatal 1 "Could not create a temporary file for downloading EFI vars"
     fi
