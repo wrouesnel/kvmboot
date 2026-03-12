@@ -457,7 +457,7 @@ EOF
 write_files:
 EOF
     for fname in "${opt_writefile[@]}"; do
-      read -r -d',' src dst owner mode < <(echo -n "${fname}")
+      IFS="," read -r src dst owner mode < <(echo -n "${fname}")
       if [ ! -e "$src" ]; then
         fatal 1 "--write-file source $src does not exist."
       fi
