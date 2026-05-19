@@ -153,6 +153,10 @@ while [ -n "$1" ] ; do
       shift
       opt_oemdrv+=( "$1" )
       ;;
+    --autoinstall)
+      shift
+      opt_autoinstall+=( "$1" )
+      ;;
     --disk)
       shift
       opt_disk="$1"
@@ -225,6 +229,7 @@ $0 [image src name] [VM name]
   --extra-disks   Specify extra disks to attach as a comma (,) separated list of sizes (i.e. 100G)
                   Pass = to specify a source disk image from the source pool e.g. 10G=source.img
   --oemdrv        Create a FAT32 disk image named "OEMDRV" and add the given file to it (good for kickstart)
+  --autoinstall   Create an autoinstall section in the cloud-init and embed the given text file (good for Ubuntu/subiquity)
   --ram           Specify an alternate RAM size for the guest VM (bytes with prefix - i.e. 4G)
   --disk          Specify an alternate disk size for the root disk (bytes with prefix - i.e. 100G)
   --windows       Enable options for Windows guests (attach video with settings for 4K)
@@ -474,6 +479,15 @@ EOF
     done
   fi
 
+  # Read the autoinstall file
+  autoinstall=""
+  if [ -n "${opt_autoinstall}" ]; then
+    if [ ! -e "${opt_autoinstall}" ]; then
+      fatal 1 "File for autoinstall key not found: ${opt_autoinstall}"
+    fi
+    read -r -d '' autoinstall < <(sed 's/^/  /' < "${opt_autoinstall}")
+  fi
+
   extra_userdata=""
   if [ ${#opt_extrauserdata[@]} -ne 0 ]; then
     missing_files=()
@@ -555,6 +569,8 @@ ${ssh_key_block2}
 final_message: "launch-cloud-image: SYSTEM READY"
 
 ${write_files}
+
+${autoinstall}
 
 ${extra_userdata}
 EOF
