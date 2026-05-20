@@ -155,7 +155,7 @@ while [ -n "$1" ] ; do
       ;;
     --autoinstall)
       shift
-      opt_autoinstall+=( "$1" )
+      opt_autoinstall="$1"
       ;;
     --disk)
       shift
@@ -327,7 +327,7 @@ fi
 if [ $opt_ram_set = 1 ]; then
   opt_ram="${_default_ram_for_video}"
 fi
-ram_bytes=$(echo "$opt_ram" | tr '[a-z]' '[A-Z]' | numfmt --from=iec)
+ram_bytes=$(echo "$opt_ram" | tr '[:lower:]' '[:upper:]' | numfmt --from=iec)
 
 log "Set RAM: $(echo "${ram_bytes}" | numfmt --to=iec)"
 
@@ -420,7 +420,18 @@ else
   mac_addr="${requested_mac:0:2}:${requested_mac:2:2}:${requested_mac:4:2}:${requested_mac:6:2}:${requested_mac:8:2}:${requested_mac:10:2}"
 fi
 
-if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
+# Should we generate a cloudinit file? 
+generate_cloudinit=0
+if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ] ; then
+  generate_cloudinit=1
+fi
+
+# autoinstaller is an installer type which _should_ generate a cloudinit
+if [ -n "$opt_autoinstall" ]; then
+  generate_cloudinit=1
+fi
+
+if [ $generate_cloudinit -eq 1 ]; then
   if [ $opt_no_ssh_inject = 0 ]; then
     if [ -z "${opt_ssh_pubkey_file}" ]; then
       log "Attempting to get SSH public key from user's private key (pass --no-ssh-inject to disable entirely)"
@@ -485,7 +496,11 @@ EOF
     if [ ! -e "${opt_autoinstall}" ]; then
       fatal 1 "File for autoinstall key not found: ${opt_autoinstall}"
     fi
-    read -r -d '' autoinstall < <(sed 's/^/  /' < "${opt_autoinstall}")
+    read -r -d '' autoinstall_body < <(sed 's/^/  /' < "${opt_autoinstall}")
+    read -r -d '' autoinstall << EOF
+autoinstall:
+${autoinstall_body}
+EOF
   fi
 
   extra_userdata=""
@@ -711,10 +726,12 @@ EOF
   # Set an exit handler to destory the image if creation fails.
   vm_created=0
   atexit "[ \${vm_created} = 0 ] && ( $virsh vol-delete --pool "$opt_cfg_pool" "$isoname" )"
+fi
 
-else
-  # In installer mode, the isoname becomes the image src name
-  isoname="$image_src"
+installer_iso=
+if [ $opt_installer ]; then
+  # In installer mode, the installer_iso becomes the image src name
+  installer_iso="$image_src"
 fi
 
 # Controls whether we clean up disks after a failure.
@@ -1002,24 +1019,31 @@ done < <($virsh vol-list --pool "$opt_cfg_pool")
 root_disk_path=${volnameMap[$root_disk]}
 log "Root disk path: $root_disk_path"
 
-iso_file_path=
+configdrive_iso_file_path=
+installer_iso_file_path=
 if [ $opt_no_image = 0 ]; then
-  if [ $opt_installer = 0 ]; then
+  if [ $generate_cloudinit -eq 1 ]; then
     # Default mode - use cfg path
-    iso_file_path=${cfgVolnameMap[$isoname]}
-  else 
-    # Installer mode - use src path
-    iso_file_path=${srcVolnameMap[$isoname]}
+    configdrive_iso_file_path=${cfgVolnameMap[$isoname]}
   fi
 
-  if [ -z "$iso_file_path" ]; then
-    if [ $opt_installer = 0 ] && [ $opt_no_cloud_init = 0 ]; then
+  if [ -n "${installer_iso}" ]; then
+    # Installer mode - use src path
+    installer_iso_file_path=${srcVolnameMap[$installer_iso]}
+  fi
+
+  if [ -z "$configdrive_iso_file_path" ] && [ $generate_cloudinit -eq 1 ] ; then
       fatal 1 "Failed to set an ISO file"
-    else
+  elif [ $generate_cloudinit -eq 0 ]; then
       log "Cloud-init disabled"
-    fi
   else 
-    log "ISO file path: $iso_file_path"
+    log "Config Drive ISO file path: $configdrive_iso_file_path"
+  fi
+
+  if [ -z "$installer_iso_file_path" ] && [ -n "$installer_iso" ] ; then
+      fatal 1 "Failed to set installer ISO file"
+  else
+    log "Install Drive ISO file path: $installer_iso_file_path"
   fi
 fi
 
@@ -1408,26 +1432,48 @@ if [ $opt_installer = 1 ]; then
   cd_boot_order_xml='<boot order="2"/>'
 fi
 
-if [ -n "$iso_file_path" ]; then
-log "Attaching ISO file to VM: $iso_file_path"
-read -r -d '' cd_xml << EOF
-    <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw' io='native' cache='none'/>
-      <source file='${iso_file_path}'/>
-      <backingStore/>
-      <target dev='sda' bus='sata'/>
-      ${cd_boot_order_xml}
-    </disk>
+cd_xml=""
+cd_sata="a"
+if [ -n "$installer_iso_file_path" ]; then
+  log "Attaching ISO file to VM: $installer_iso_file_path"
+  read -r -d '' cd_xml << EOF
+${cd_xml}
+
+<disk type='file' device='cdrom'>
+  <driver name='qemu' type='raw' io='native' cache='none'/>
+  <source file='${installer_iso_file_path}'/>
+  <backingStore/>
+  <target dev='sd$cd_sata' bus='sata'/>
+  ${cd_boot_order_xml}
+</disk>
 EOF
-else
-log "No ISO file being attached"
-read -r -d '' cd_xml << EOF
-    <disk type='file' device='cdrom'>
-      <driver name='qemu' type='raw' io='native' cache='none'/>
-      <backingStore/>
-      <target dev='sda' bus='sata'/>
-      ${cd_boot_order_xml}
-    </disk>
+  cd_sata=$(tr 'a-z' 'b-z_' <<< "$cd_sata")
+fi
+
+if [ -n "$configdrive_iso_file_path" ]; then
+  log "Attaching ISO file to VM: $configdrive_iso_file_path"
+  read -r -d '' cd_xml << EOF
+${cd_xml}
+
+<disk type='file' device='cdrom'>
+  <driver name='qemu' type='raw' io='native' cache='none'/>
+  <source file='${configdrive_iso_file_path}'/>
+  <backingStore/>
+  <target dev='sd$cd_sata' bus='sata'/>
+</disk>
+EOF
+  cd_sata=$(tr 'a-z' 'b-z_' <<< "$cd_sata")
+fi
+
+if [ -z "$installer_iso_file_path" ] && [ -z "$configdrive_iso_file_path" ]; then
+  log "No ISO file being attached"
+  read -r -d '' cd_xml << EOF
+<disk type='file' device='cdrom'>
+  <driver name='qemu' type='raw' io='native' cache='none'/>
+  <backingStore/>
+  <target dev='sd$cd_sata' bus='sata'/>
+  ${cd_boot_order_xml}
+</disk>
 EOF
 fi
 
