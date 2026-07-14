@@ -1,0 +1,105 @@
+# Ubuntu 24.04 Virtualized "Server" Auto Install
+
+version: 1
+
+identity:
+  realname: Ubuntu User
+  username: ubuntu
+  # ubuntu
+  password: $6$VKusq8EfS1ZRlQWR$fzV8XUXlD8IZLISB82hUUydeGOi7mictrlaOfzKtE/uzIxeuEfQ4bccf0I89GwJ7JTruWh1JHr3C5Eq9W5I2G0
+  hostname: ubuntu
+
+locale: en_AU.UTF-8
+
+refresh-installer:
+  update: true
+
+source:
+  search_drivers: true
+  id: ubuntu-server-minimal
+
+apt:
+  preserve_sources_list: false
+  primary:
+    - arches: [amd64, i386]
+      uri: http://archive.ubuntu.com/ubuntu
+  sources:
+    nix-metall.sources:
+      source: |
+        Types: deb
+        URIs: https://ppa.launchpadcontent.net/w-rouesnel/nix-metall/ubuntu
+        Suites: $RELEASE
+        Components: main
+        Signed-By: 
+         -----BEGIN PGP PUBLIC KEY BLOCK-----
+         .
+         mQINBGYzp/EBEADfDAbyp4G0v2GeaiCQnHuox/13f2TWbfv/gXuEmoHUZca1AlBX
+         vcUTXc/m/V7fs0iFF0eb2VMTIqhEI4bFFclQSZLbYe2Dyoq9uD7nVHPKVRHWrdV+
+         VXo/fg38Uc/aAUcsDszpQskmhecKXgWUm+34DdxzDaLxdeNn5LYRi86U0knPNbz0
+         pFN/aSYuY1Z8KPRw6aygDMgkaZWkG9zbHQTSnCnoOw8FE4qq1GSTjm5ypfneCfXS
+         7DzhH+Eoz+0OVLTr4J4kOKqzANm5FD60dy0wu8Cm+n/c7QfiLwcCi/SgPzKfdxpA
+         t91gN8GNFGPT0GxXkmm2NOD7EVCQbAX4rQ4OYQLWB7lw7rORveY8LBBx2BcDyWzI
+         2FgILcEsBswPbCF6fJHGen3oE83xqf4wJqT8UKMo+wuKqiSmvEC0qaybSco9ruiQ
+         /WM5nY8IDyQhI1EIBix0MJUGz873/NgXXX/Psy/2tGbV+02VXPBsahq7hYGwyn0T
+         dtotz2dAJnGoCST6nLk4zbPwLX3BDvZNay8wpWyvn3EOMOCrSmC9Yn+XcjmusNop
+         zMRluvLPCT/HzsIZf9x6Qob1/vv/gvc1eB23qSCa6tJEP3uy+BKQShyZeb8jW67J
+         wX8l5QhHIjdZUxjbRmfJo6E9TAqlnoUBb9VWUfkeBTSUP3uHSqH+k19TfwARAQAB
+         tB9MYXVuY2hwYWQgUFBBIGZvciBXaWxsIFJvdWVzbmVsiQJOBBMBCgA4FiEEUx8Z
+         rDazWUfzDZODvwDIeQIoPKcFAmYzp/ECGwMFCwkIBwIGFQoJCAsCBBYCAwECHgEC
+         F4AACgkQvwDIeQIoPKcG3w/9H54f7sgGLqKI78/n1VBF5cukk2HI8uwMhJ2u5D7v
+         yUiTCFj5MwCyvkq5N7vZ9mc0XhnV/Vb5jfXKkFWzKt8/Xo0bj1c8+ADMN+iVfFDK
+         64piC0YaGy6gF1UWXgHdZzdCFjzSs5x+PnXuijC+8/UT4Jy3xgBWBzrFHR/mq9Be
+         L7OZOn1KLhb9BFuVqoCwL18Bc2z+k2Iw+P2FjyYpeavzFKuIBerHhwSmM45IOz6E
+         6rDUuEx552DXKHZuSFaUTaiazzQO3vVK8TsozpnXqZJE4KkkX46mvJmouoBj/smT
+         8Qf5mTn5OwSSmZzwhVPkMv508ZjryZzLWPRtVSpNrMj+wiFpWpAH509nbuYXbTx+
+         Yyy8j3woy0dk7RO9O8A1ILWMow3uRHvgE8dSM2kgJqKvqxPpg0xvB1f3n11yd0P5
+         NZRq1/JDM1S1ZNmzZavma+BVfjDaH6hFGuO7DPjgLFuRfsWVAOXTSYM6z3O5IADN
+         YCmenRsQQsSzxR/mv/SrA+WXaUSAmhW1S92AEXkBalOh1KcKu0ORgLjNqL7LBXhb
+         tlWvTHW3+eKWBJeyCVn9qdSy+uc0kwP2g074WARNfotexHxHk2/DOkdjMRXNTViw
+         4UjJq/8tq3CmUcKN07pmoB8tKrjVn6xrlED3LXvBeFQS8qkdkZ4FdVFXi57KzgN2
+         XP8=
+         =wO7k
+         -----END PGP PUBLIC KEY BLOCK-----
+
+proxy: null
+
+# Install ZFS layout
+storage:
+  layout:
+    name: zfs
+# Install SSH
+ssh:
+  install-server: true
+  allow-pw: true
+# Packages
+packages:
+  - cloud-init
+  - open-vm-tools
+  - qemu-guest-agent
+  - spice-vdagent
+  - synaptic
+  - apt-xapian-index
+  - zsys
+  - ksmtuned
+  - libnfs-utils
+  - nfs-common
+  - nix-metall-bin
+# Timezone
+timezone: Australia/Sydney
+late-commands:
+  # Setup zsys on the system by setting the correct ZFS flags
+  - curtin in-target --target=/target -- bash -c 'zfs set com.ubuntu.zsys:bootfs=yes $(comm -3 <(zfs list -Hp rpool/ROOT) <(zfs list -Hp -d 1 rpool/ROOT) | cut -f2)'
+  # Convert the environment to cinnamon
+  # We could use cinnamon desktop for this, but let's stick with a "standard" ISO for now.
+  - curtin in-target --target=/target -- apt autoremove --purge -y
+  # Enable kernel and grub serial console
+  - curtin in-target --target=/target -- sed -i 's/#GRUB_TERMINAL=\(.*\)/GRUB_TERMINAL="serial \1"/g' /etc/default/grub
+  - curtin in-target --target=/target -- sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="\(.*\)"/GRUB_CMDLINE_LINUX_DEFAULT="\1 console=tty0 console=ttyS0,115200n8"/g' /etc/default/grub
+  - curtin in-target --target=/target -- sed -i 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=3/g' /etc/default/grub
+  - curtin in-target --target=/target -- update-grub
+# Reboot after install
+shutdown: poweroff
+# # This inhibits user creation, which for Desktop images means that
+# # gnome-initial-setup will prompt for user creation on first boot.
+# user-data:
+#   users: ['']
