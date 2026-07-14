@@ -31,6 +31,7 @@ ssh:
 # Packages
 packages:
   - cloud-init
+  - open-vm-tools
   - qemu-guest-agent
   - spice-vdagent
   - synaptic
