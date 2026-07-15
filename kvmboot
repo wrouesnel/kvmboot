@@ -871,7 +871,7 @@ if [ ! -z "$opt_extra_disks" ]; then
         fatal 1 "Could not determine backing image format for diskspec: $diskspec"
       fi
 
-      log "Create extra disk with capacity: $extra_disk_path $capacity (backed by $local_backing_vol - $local_backing_image_format)"
+      log "Create extra disk with capacity: $extra_disk_path $diskspec_size (backed by $local_backing_vol - $local_backing_image_format)"
       if ! $virsh vol-create-as \
         --pool "$opt_dst_pool" \
         --name "${extra_disk_path}" \
@@ -883,7 +883,7 @@ if [ ! -z "$opt_extra_disks" ]; then
         disk_failure=1
       fi
     else
-      log "Create extra disk with capacity: $extra_disk_path $capacity"
+      log "Create extra disk with capacity: $extra_disk_path $diskspec_size"
       if ! $virsh vol-create-as \
         --pool "$opt_dst_pool" \
         --name "${extra_disk_path}" \
