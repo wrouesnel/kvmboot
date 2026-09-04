@@ -729,7 +729,7 @@ EOF
 fi
 
 installer_iso=
-if [ $opt_installer ]; then
+if [ $opt_installer -eq 1 ]; then
   # In installer mode, the installer_iso becomes the image src name
   installer_iso="$image_src"
 fi
