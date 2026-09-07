@@ -80,6 +80,7 @@ opt_no_reboot=0
 opt_emit_ansible_creds=
 opt_ip_from_agent=0
 opt_print_xml=0
+opt_configdrive_volume_name="config-2"
 opt_oemdrv=()
 opt_extrauserdata=()
 # Collect optional arguments
@@ -219,6 +220,10 @@ while [ -n "$1" ] ; do
       shift
       opt_writefile+=( "$1" )
       ;;
+    --config-drive-volume-name)
+      shift
+      opt_configdrive_volume_name="$1"
+      ;;
     --help)
       cat << EOF 1>&2
 $0 [image src name] [VM name]
@@ -256,6 +261,7 @@ $0 [image src name] [VM name]
   --no-wait       Do not wait for the image to become network reachable
   --no-cloud-init Do not output cloud-init boot data
   --no-reboot     Pass the --no-reboot flag to QEMU
+  --config-drive-volume-name Set the name of the config drive volume (default: $opt_configdrive_volume_name)
   --help          Display this help text.
 
 EOF
@@ -690,7 +696,7 @@ EOF
   if ! xorriso \
         -outdev "$isopath" \
         -blank as_needed \
-        -volid config-2 \
+        -volid "$opt_configdrive_volume_name" \
         -joliet on \
         -follow on \
         -map "${prep_dir}" "/" \
@@ -1599,7 +1605,11 @@ else
   if [ -n "$opt_emit_ansible_creds" ]; then
     # Inject credentials as a kvmboot.yml file under host vars
     if [ ! -d "${opt_emit_ansible_creds}" ]; then
-      fatal 1 "Could not emit ansible credentials - supplied path not a directory"
+      if ! mkdir -p "${opt_emit_ansible_creds}" ; then
+        fatal 1 "Could not emit ansible credentials - supplied path not a directory and could not be created"
+      else
+        log "Creating directory ${opt_emit_ansible_creds}"
+      fi
     fi
     credentials_path="${opt_emit_ansible_creds}/host_vars/${vm_dns}/kvmboot.yml"
     log "Writing ansible credentials to: ${credentials_path}"
